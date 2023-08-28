@@ -57,7 +57,7 @@ async function loadImage(imgPath: string, scene: THREE.Scene, delta = 0) {
   const width = texture.image.width
   const height = texture.image.height
 
-  const scale = 3
+  const scale = 2.7
 
   const planeGeometry = createRoundedRectangleWithThickness(scale, height / width * scale, 0.2)
   const planeMaterial = new THREE.MeshBasicMaterial({ map: texture })
@@ -70,12 +70,13 @@ async function loadImage(imgPath: string, scene: THREE.Scene, delta = 0) {
   // 设定 plane 的坐标，为绕着 Z 轴一周的圆形， delta 0 和 1 位置相同，delta 0.5 位置在最后面
   plane.position.z = Math.cos(Math.PI * 2 * delta) * 10
   plane.position.x = Math.sin(Math.PI * 2 * delta) * 20
-  texture.colorSpace = THREE.SRGBColorSpace
+  // texture.colorSpace = THREE.SRGBColorSpace
   scene.add(plane)
   function animate(time: number) {
     requestAnimationFrame(animate)
     plane.position.z = Math.cos(Math.PI * 2 * (delta + time / 60000)) * 5
     plane.position.x = Math.sin(Math.PI * 2 * (delta + time / 60000)) * 10
+    plane.position.y = Math.sin(Math.PI * 2 * (delta + time / 5000)) * 0.2
   }
   animate(0)
 }
@@ -85,15 +86,25 @@ onMounted(async () => {
     return
 
   const scene = new THREE.Scene()
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200)
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
   renderer.setClearColor(new THREE.Color(0xE5E5E5))
   renderer.setSize(window.innerWidth, window.innerHeight)
   threeSceneRef.value.appendChild(renderer.domElement)
-  const imgPath = '/imgs/FbfB5CXakAAEr4T.jpg'
+  const imgPathList = [
+    '/imgs/cake.af390a65.png',
+    '/imgs/FbfB5CXakAAEr4T.jpg',
+    '/imgs/miku.d66461fc.jpeg',
+    '/imgs/oc2.7bee0420.jpeg',
+    '/imgs/ななみ.c4dafa62.jpeg',
+    '/imgs/白銀つむぎ.3e70dc15.jpeg',
+    '/imgs/舞園さやか.a060f725.jpeg',
+    '/imgs/赤松楓.9d64b955.jpeg',
+
+  ]
   const n = 20
   for (let i = 0; i < n; i++)
-    await loadImage(imgPath, scene, i / n)
+    await loadImage(imgPathList[i % imgPathList.length], scene, i / n)
 
   camera.position.copy(new THREE.Vector3(-4, -1.25, 9))
   camera.rotation.y = 180

@@ -1,6 +1,10 @@
-<script setup lang="ts">
+<script setup>
+definePageMeta({ middleware: ['i18n'] })
 </script>
 
 <template>
-  <div />
+  <div>
+    <ThreeScene />
+    <NuxtPage />
+  </div>
 </template>
