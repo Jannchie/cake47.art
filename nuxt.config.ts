@@ -4,8 +4,8 @@ export default defineNuxtConfig({
   modules: [
     '@unocss/nuxt',
     '@nuxtjs/google-fonts',
-    '@nuxtjs/eslint-module',
     '@vueuse/nuxt',
+    'nuxt-gtag',
   ],
   googleFonts: {
     prefetch: true,
@@ -15,9 +15,11 @@ export default defineNuxtConfig({
     families: {
       'Inter': true,
       'Zen Maru Gothic': true,
+      'Noto Sans JP': true,
+      'Noto Sans SC': true,
     },
   },
-  eslint: {
-    lintOnStart: false,
-  },
+  gtag: {
+    id: 'G-HYM1QE9PCP'
+  }
 })
