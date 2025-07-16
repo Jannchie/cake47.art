@@ -166,10 +166,28 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div
-    ref="threeSceneRef" class="h-[100vh] w-[100vw] transition-all duration-1000 absolute" :class="{
-      'opacity-0': loading,
-      'opacity-100': !loading,
-    }"
-  />
+  <div class="h-[100vh] w-[100vw] absolute z-0">
+    <!-- Loading overlay -->
+    <div
+      v-if="loading"
+      class="bg-gradient-to-br flex h-full w-full items-center justify-center absolute z-30 from-neutral-100 to-neutral-200"
+    >
+      <div class="text-center">
+        <div class="loading-spinner mx-auto mb-4" />
+        <p class="text-sm text-neutral-600 animate-pulse">
+          Loading artwork...
+        </p>
+      </div>
+    </div>
+
+    <!-- Three.js scene -->
+    <div
+      ref="threeSceneRef"
+      class="h-full w-full transition-all duration-1000"
+      :class="{
+        'opacity-0': loading,
+        'opacity-100': !loading,
+      }"
+    />
+  </div>
 </template>
