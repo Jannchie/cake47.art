@@ -28,8 +28,7 @@ useHead({
 </template>
 
 <style>
-
-[lang="en"] { 
+[lang="en"] {
   font-family: 'Zen Maru Gothic', 'Noto Sans JP', 'Inter', sans-serif;
 }
 

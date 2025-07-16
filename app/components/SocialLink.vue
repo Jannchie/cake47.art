@@ -8,17 +8,18 @@ const props = defineProps<{
 }>()
 
 let target = props.target
-if (!target)
+if (!target) {
   target = '_blank'
+}
 </script>
 
 <template>
   <NuxtLink
     :href="href"
     :target="target"
-    class="min-w-48 flex gap-4 items-center hover:bg-neutral-7/10 transition-all px-2 py-1 rounded cursor-pointer text-neutral-7"
+    class="text-neutral-7 hover:bg-neutral-7/10 px-2 py-1 rounded flex gap-4 min-w-48 cursor-pointer transition-all items-center"
   >
-    <i class="text-2xl" :class="icon" />
+    <Icon :name="icon" class="text-2xl" />
     <div>
       <div>
         {{ props.title }}

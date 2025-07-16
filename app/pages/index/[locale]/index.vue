@@ -3,15 +3,16 @@ setHtmlLangByLocale()
 setSeoMetaByLocale()
 
 const isMobile = computed(() => {
-  if (typeof navigator === 'undefined')
+  if (typeof navigator === 'undefined') {
     return false
+  }
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 })
 </script>
 
 <template>
-  <div class="w-full h-full">
-    <div class="absolute top-8 right-8 gap-4 flex text-neutral-7">
+  <div class="h-full w-full">
+    <div class="text-neutral-7 flex gap-4 right-8 top-8 absolute">
       <NuxtLink href="/zh-CN">
         中文
       </NuxtLink>
@@ -23,29 +24,23 @@ const isMobile = computed(() => {
       </NuxtLink>
     </div>
     <ClientOnly>
-      <div v-if="!isMobile" class="absolute bottom-8 left-8 flex gap-2 font-[Intel]">
+      <div v-if="!isMobile" class="font-[Intel] flex gap-2 bottom-8 left-8 absolute">
         <SocialLink
-          :title="t('twitter')"
-          icon="i-ri-twitter-x-line"
-          href="https://twitter.com/snowcake47"
+          :title="t('twitter')" icon="ri:twitter-x-line" href="https://twitter.com/snowcake47"
           description="@snowcake47"
         />
         <SocialLink
-          title="Pixiv"
-          icon="i-simple-icons-pixiv"
-          href="https://www.pixiv.net/users/3626004"
+          title="Pixiv" icon="simple-icons:pixiv" href="https://www.pixiv.net/users/3626004"
           description="3626004"
         />
         <SocialLink
-          :title="t('weibo')"
-          icon="i-simple-icons-sinaweibo"
-          href="https://weibo.com/2861524284"
+          :title="t('weibo')" icon="simple-icons:sinaweibo" href="https://weibo.com/2861524284"
           description="2861524284"
         />
       </div>
     </ClientOnly>
-    <h1 class="absolute right-8 bottom-8 text-neutral-7 text-right">
-      <div class="md:text-9xl font-black">
+    <h1 class="text-neutral-7 text-right bottom-8 right-8 absolute">
+      <div class="font-black md:text-9xl">
         cake47.art
       </div>
       <div class="md:text-7xl">

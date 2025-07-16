@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import * as THREE from 'three'
+import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
-import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js'
 import { onMounted, ref } from 'vue'
 
 const threeSceneRef = ref<HTMLDivElement | null>(null)
@@ -28,10 +28,18 @@ function createRoundedRectangleWithThickness(width: number, height: number, radi
 
   const geometry = new THREE.ExtrudeGeometry(outerShape, extrudeSettings)
 
-  const uvs = geometry.attributes.uv.array
-  for (let i = 0; i < uvs.length; i += 2) {
-    uvs[i] = (uvs[i] + width / 2) / width
-    uvs[i + 1] = (uvs[i + 1] + height / 2) / height
+  const uvs = geometry.attributes.uv?.array
+  if (uvs) {
+    for (let i = 0; i < uvs.length; i += 2) {
+      const u = uvs[i]
+      const v = uvs[i + 1]
+      if (u !== undefined) {
+        uvs[i] = (u + width / 2) / width
+      }
+      if (v !== undefined) {
+        uvs[i + 1] = (v + height / 2) / height
+      }
+    }
   }
 
   return geometry
@@ -61,7 +69,7 @@ async function loadImage(imgPath: string, scene: THREE.Scene, delta = 0) {
 
   const planeGeometry = createRoundedRectangleWithThickness(scale, height / width * scale, 0.2)
   const planeMaterial = new THREE.MeshBasicMaterial({ map: texture })
-  const plane = new THREE.Mesh(planeGeometry, [planeMaterial, new THREE.MeshBasicMaterial({ color: 0xFFFFFF })])
+  const plane = new THREE.Mesh(planeGeometry, [planeMaterial, new THREE.MeshBasicMaterial({ color: 0xFF_FF_FF })])
 
   const angleInRadians = THREE.MathUtils.degToRad(5)
   // plane.rotation.y = angleInRadians * 3
@@ -74,23 +82,24 @@ async function loadImage(imgPath: string, scene: THREE.Scene, delta = 0) {
   scene.add(plane)
   function animate(time: number) {
     requestAnimationFrame(animate)
-    plane.position.z = Math.cos(Math.PI * 2 * (delta + time / 60000)) * 5
-    plane.position.x = Math.sin(Math.PI * 2 * (delta + time / 60000)) * 10
+    plane.position.z = Math.cos(Math.PI * 2 * (delta + time / 60_000)) * 5
+    plane.position.x = Math.sin(Math.PI * 2 * (delta + time / 60_000)) * 10
     plane.position.y = Math.sin(Math.PI * 2 * (delta + time / 5000)) * 0.2
   }
   animate(0)
 }
 
 onMounted(async () => {
-  if (!threeSceneRef.value)
+  if (!threeSceneRef.value) {
     return
+  }
 
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200)
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-  renderer.setClearColor(new THREE.Color(0xE5E5E5))
+  renderer.setClearColor(new THREE.Color(0xE5_E5_E5))
   renderer.setSize(window.innerWidth, window.innerHeight)
-  threeSceneRef.value.appendChild(renderer.domElement)
+  threeSceneRef.value.append(renderer.domElement)
   const imgPathList = [
     '/imgs/cake.af390a65.png',
     '/imgs/FbfB5CXakAAEr4T.jpg',
@@ -103,8 +112,12 @@ onMounted(async () => {
 
   ]
   const n = 20
-  for (let i = 0; i < n; i++)
-    await loadImage(imgPathList[i % imgPathList.length], scene, i / n)
+  for (let i = 0; i < n; i++) {
+    const imgPath = imgPathList[i % imgPathList.length]
+    if (imgPath) {
+      await loadImage(imgPath, scene, i / n)
+    }
+  }
 
   camera.position.copy(new THREE.Vector3(-4, -1.25, 9))
   camera.rotation.y = 180
@@ -119,7 +132,7 @@ onMounted(async () => {
   composer.addPass(renderPass)
 
   const bokehPass = new BokehPass(scene, camera, {
-    focus: 5.0,
+    focus: 5,
     aperture: 0.001,
     maxblur: 0.01,
   })
@@ -154,7 +167,7 @@ onMounted(async () => {
 
 <template>
   <div
-    ref="threeSceneRef" class="w-[100vw] h-[100vh] absolute transition-all duration-1000" :class="{
+    ref="threeSceneRef" class="h-[100vh] w-[100vw] transition-all duration-1000 absolute" :class="{
       'opacity-0': loading,
       'opacity-100': !loading,
     }"
