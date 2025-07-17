@@ -95,10 +95,10 @@ onMounted(async () => {
   }
 
   const scene = new THREE.Scene()
-  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200)
+  const camera = new THREE.PerspectiveCamera(50, threeSceneRef.value.clientWidth / threeSceneRef.value.clientHeight, 0.1, 200)
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
   renderer.setClearColor(new THREE.Color(0xE5_E5_E5))
-  renderer.setSize(window.innerWidth, window.innerHeight)
+  renderer.setSize(threeSceneRef.value.clientWidth, threeSceneRef.value.clientHeight)
   threeSceneRef.value.append(renderer.domElement)
   const imgPathList = [
     '/imgs/cake.af390a65.png',
@@ -152,21 +152,24 @@ onMounted(async () => {
   loading.value = false
 
   window.addEventListener('resize', () => {
+    if (!threeSceneRef.value) {
+      return
+    }
     // 更新相机的纵横比
-    camera.aspect = window.innerWidth / window.innerHeight
+    camera.aspect = threeSceneRef.value.clientWidth / threeSceneRef.value.clientHeight
 
     // 更新相机的投影矩阵
     camera.updateProjectionMatrix()
-    renderer.setSize(window.innerWidth, window.innerHeight)
+    renderer.setSize(threeSceneRef.value.clientWidth, threeSceneRef.value.clientHeight)
     renderer.setPixelRatio(window.devicePixelRatio)
-    composer.setSize(window.innerWidth, window.innerHeight)
-    bokehPass.setSize(window.innerWidth, window.innerHeight)
+    composer.setSize(threeSceneRef.value.clientWidth, threeSceneRef.value.clientHeight)
+    bokehPass.setSize(threeSceneRef.value.clientWidth, threeSceneRef.value.clientHeight)
   }, false)
 })
 </script>
 
 <template>
-  <div class="h-[100vh] w-[100vw] absolute z-0">
+  <div class="h-screen w-full inset-0 absolute z-0">
     <!-- Loading overlay -->
     <div
       v-if="loading"

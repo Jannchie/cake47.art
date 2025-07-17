@@ -17,13 +17,14 @@ if (!target) {
   <NuxtLink
     :href="href"
     :target="target"
-    class="enhance-hover text-neutral-7 glassmorphism button-hover px-3 py-2 rounded-xl flex gap-4 min-w-48 cursor-pointer transform transition-all items-center"
+    class="enhance-hover text-neutral-7 p-2 glassmorphism rounded-full button-hover flex cursor-pointer transform transition-all items-center justify-center md:px-3 md:py-2 md:rounded-xl md:gap-4 md:min-w-48"
   >
     <div class="relative">
-      <Icon :name="icon" class="text-2xl" />
+      <Icon :name="icon" class="text-lg md:text-2xl" />
       <div class="bg-gradient-to-r rounded-full opacity-0 transition-opacity inset-0 absolute from-blue-500/20 to-purple-500/20 blur-md group-hover:opacity-100" />
     </div>
-    <div class="flex-1">
+    <!-- Desktop: Show full text content -->
+    <div class="flex-1 hidden md:block">
       <div class="text-sm font-medium">
         {{ props.title }}
       </div>

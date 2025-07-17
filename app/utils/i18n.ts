@@ -12,17 +12,17 @@ const i18nData = {
   title: {
     'zh-CN': '私期的画室',
     'ja': '私期の画室',
-    'en': 'Cake47\'s Illustration Studio',
+    'en': 'snowcake47\'s Illustration',
   },
   description: {
     'zh-CN': '欢迎来到私期的画室。',
     'ja': '私期の画室へようこそ。',
-    'en': 'Welcome to Cake47\'s Illustration Studio.',
+    'en': 'Welcome to snowcake47\'s Illustration.',
   },
-  twitter: {
-    'zh-CN': '推特',
-    'ja': 'ツイッター',
-    'en': 'Twitter',
+  x: {
+    'zh-CN': 'X',
+    'ja': 'X',
+    'en': 'X',
   },
   weibo: {
     'zh-CN': '微博',
