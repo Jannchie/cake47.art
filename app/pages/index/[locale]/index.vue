@@ -15,24 +15,24 @@ const isMobile = computed(() => {
 
 <template>
   <div>
-    <div class="h-100dvh w-full relative">
+    <div class="relative h-100dvh w-full">
       <!-- Language selector with improved mobile design -->
-      <div class="text-neutral-7 flex gap-3 right-4 top-4 absolute z-20 md:right-8 md:top-8">
+      <div class="absolute right-4 top-4 z-20 flex gap-3 text-neutral-7 md:right-8 md:top-8">
         <NuxtLink
           href="/zh-CN"
-          class="text-sm font-medium px-3 py-1 rounded-full bg-white/10 transition-all duration-300 backdrop-blur-sm hover:bg-white/20"
+          class="rounded-full bg-white/10 px-3 py-1 text-sm font-medium backdrop-blur-sm transition-all duration-300 hover:bg-white/20"
         >
           中文
         </NuxtLink>
         <NuxtLink
           href="/en"
-          class="text-sm font-medium px-3 py-1 rounded-full bg-white/10 transition-all duration-300 backdrop-blur-sm hover:bg-white/20"
+          class="rounded-full bg-white/10 px-3 py-1 text-sm font-medium backdrop-blur-sm transition-all duration-300 hover:bg-white/20"
         >
           English
         </NuxtLink>
         <NuxtLink
           href="/ja"
-          class="text-sm font-medium px-3 py-1 rounded-full bg-white/10 transition-all duration-300 backdrop-blur-sm hover:bg-white/20"
+          class="rounded-full bg-white/10 px-3 py-1 text-sm font-medium backdrop-blur-sm transition-all duration-300 hover:bg-white/20"
         >
           日本語
         </NuxtLink>
@@ -40,28 +40,28 @@ const isMobile = computed(() => {
 
       <!-- Social links with improved mobile support -->
       <ClientOnly>
-        <div class="font-[Intel] flex flex-col gap-2 transform bottom-4 left-1/2 absolute z-20 -translate-x-1/2 lg:translate-x-0 lg:bottom-8 lg:left-8">
+        <div class="absolute bottom-4 left-1/2 z-20 flex flex-col transform gap-2 font-[Intel] lg:bottom-8 lg:left-8 -translate-x-1/2 lg:translate-x-0">
           <div v-if="isMobile" class="mb-2 flex gap-2">
             <a
               href="https://x.com/snowcake47"
               target="_blank"
-              class="p-2 rounded-full bg-white/10 transition-all duration-300 backdrop-blur-sm hover:bg-white/20"
+              class="rounded-full bg-white/10 p-2 backdrop-blur-sm transition-all duration-300 hover:bg-white/20"
             >
-              <Icon name="ri:twitter-x-line" class="text-neutral-7 text-xl" />
+              <Icon name="ri:twitter-x-line" class="text-xl text-neutral-7" />
             </a>
             <a
               href="https://www.pixiv.net/users/3626004"
               target="_blank"
-              class="p-2 rounded-full bg-white/10 transition-all duration-300 backdrop-blur-sm hover:bg-white/20"
+              class="rounded-full bg-white/10 p-2 backdrop-blur-sm transition-all duration-300 hover:bg-white/20"
             >
-              <Icon name="simple-icons:pixiv" class="text-neutral-7 text-xl" />
+              <Icon name="simple-icons:pixiv" class="text-xl text-neutral-7" />
             </a>
             <a
               href="https://weibo.com/2861524284"
               target="_blank"
-              class="p-2 rounded-full bg-white/10 transition-all duration-300 backdrop-blur-sm hover:bg-white/20"
+              class="rounded-full bg-white/10 p-2 backdrop-blur-sm transition-all duration-300 hover:bg-white/20"
             >
-              <Icon name="simple-icons:sinaweibo" class="text-neutral-7 text-xl" />
+              <Icon name="simple-icons:sinaweibo" class="text-xl text-neutral-7" />
             </a>
           </div>
 
@@ -83,8 +83,8 @@ const isMobile = computed(() => {
       </ClientOnly>
 
       <!-- Main title with improved typography and responsive positioning -->
-      <div class="text-neutral-7 text-center w-max transform bottom-20 left-1/2 absolute z-20 lg:text-right md:w-auto -translate-x-1/2 lg:translate-x-0 lg:bottom-8 lg:right-8">
-        <div class="text-4xl leading-none font-black mb-2 lg:text-7xl xl:text-9xl">
+      <div class="absolute bottom-20 left-1/2 z-20 w-max transform text-center text-neutral-7 lg:bottom-8 lg:right-8 md:w-auto -translate-x-1/2 lg:translate-x-0 lg:text-right">
+        <div class="mb-2 text-4xl font-black leading-none lg:text-7xl xl:text-9xl">
           cake47.art
         </div>
         <div class="text-xl leading-none lg:text-2xl md:text-xl xl:text-5xl">
@@ -93,7 +93,7 @@ const isMobile = computed(() => {
       </div>
 
       <!-- Decorative gradient overlay -->
-      <div class="bg-gradient-to-br pointer-events-none inset-0 absolute z-10 from-transparent to-black/5 via-transparent" />
+      <div class="pointer-events-none absolute inset-0 z-10 from-transparent via-transparent to-black/5 bg-gradient-to-br" />
     </div>
   </div>
 </template>

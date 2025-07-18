@@ -48,6 +48,9 @@ importers:
       '@jannchie/eslint-config':
         specifier: ^3.6.1
         version: 3.6.1(@unocss/eslint-plugin@66.3.3(eslint@9.31.0(jiti@2.4.2))(typescript@5.8.3))(@vue/compiler-sfc@3.5.17)(eslint@9.31.0(jiti@2.4.2))(typescript@5.8.3)
+      '@types/node':
+        specifier: ^24.0.14
+        version: 24.0.14
       '@types/three':
         specifier: ^0.178.1
         version: 0.178.1

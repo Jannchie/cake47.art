@@ -169,15 +169,15 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="h-screen w-full inset-0 absolute z-0">
+  <div class="absolute inset-0 z-0 h-screen w-full">
     <!-- Loading overlay -->
     <div
       v-if="loading"
-      class="bg-gradient-to-br flex h-full w-full items-center justify-center absolute z-30 from-neutral-100 to-neutral-200"
+      class="absolute z-30 h-full w-full flex items-center justify-center from-neutral-100 to-neutral-200 bg-gradient-to-br"
     >
       <div class="text-center">
         <div class="loading-spinner mx-auto mb-4" />
-        <p class="text-sm text-neutral-600 animate-pulse">
+        <p class="animate-pulse text-sm text-neutral-600">
           Loading artwork...
         </p>
       </div>
