@@ -11,25 +11,27 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxt/eslint": "1.5.2",
+    "@nuxt/eslint": "1.7.1",
     "@nuxt/fonts": "0.11.4",
     "@nuxt/icon": "1.15.0",
     "@nuxt/image": "1.10.0",
-    "@roku-ui/preset": "^0.23.0",
-    "@roku-ui/vue": "^0.23.0",
-    "eslint": "^9.31.0",
-    "nuxt": "^4.0.0",
+    "@nuxthub/core": "0.9.0",
+    "@roku-ui/preset": "^0.26.0",
+    "@roku-ui/vue": "^0.26.0",
+    "eslint": "^9.32.0",
+    "nuxt": "^4.0.2",
     "three": "^0.178.0",
     "unocss": "^66.3.3",
-    "vue": "^3.5.17",
+    "vue": "^3.5.18",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@jannchie/eslint-config": "^3.6.1",
-    "@types/node": "^24.0.14",
+    "@types/node": "^24.1.0",
     "@types/three": "^0.178.1",
     "@unocss/eslint-plugin": "^66.3.3",
     "@unocss/nuxt": "^66.3.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "wrangler": "^4.26.0"
   }
 }

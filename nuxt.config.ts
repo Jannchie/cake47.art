@@ -8,6 +8,7 @@ export default defineNuxtConfig({
     '@nuxt/fonts',
     '@nuxt/eslint',
     '@unocss/nuxt',
+    '@nuxthub/core',
   ],
   css: ['~/assets/css/main.css'],
 })
