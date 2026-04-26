@@ -18,3 +18,4 @@ export const HOME_SLOTS: HomeSlotDef[] = [
 
 export const HOME_SLOT_KEYS = new Set(HOME_SLOTS.map(s => s.key))
 export const SELECTED_PREFIX = 'selected.'
+export const CAROUSEL_PREFIX = 'carousel.'

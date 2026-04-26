@@ -462,8 +462,7 @@ watch(activeCategory, (val) => {
         </div>
 
         <div class="caption-counter" aria-hidden="true">
-          <em>{{ String(currentIndex + 1).padStart(3, '0') }}</em>
-          <span class="caption-counter-line" />
+          <em class="caption-counter-current">{{ String(currentIndex + 1).padStart(3, '0') }}</em>
           <em class="caption-counter-total">{{ String(totalCount).padStart(3, '0') }}</em>
         </div>
       </footer>
@@ -537,7 +536,7 @@ watch(activeCategory, (val) => {
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #6c7384;
+  color: #4a5061;
   transition: color 0.4s ease;
 }
 
@@ -567,7 +566,7 @@ watch(activeCategory, (val) => {
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.16em;
-  color: #b9bcc4;
+  color: #8a8f9c;
   cursor: pointer;
   transition: color 0.3s ease;
 }
@@ -647,7 +646,7 @@ watch(activeCategory, (val) => {
 
 .index-brand-text small {
   font-size: 0.62rem;
-  color: #9499a3;
+  color: #6c7384;
   letter-spacing: 0.1em;
   margin-top: 0.2rem;
 }
@@ -655,20 +654,37 @@ watch(activeCategory, (val) => {
 .index-list { display: grid; gap: 0.05rem; }
 
 .index-item {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: baseline;
   gap: 0.7rem;
-  padding: 0.55rem 0.6rem 0.55rem 0;
+  padding: 0.55rem 0.6rem 0.55rem 0.6rem;
   background: transparent;
   border: 0;
   font-family: inherit;
   text-align: left;
   font-size: 1rem;
   letter-spacing: 0.01em;
-  color: #6c7384;
+  color: #4a5061;
   cursor: pointer;
   transition: color 0.4s cubic-bezier(.2, .8, .2, 1);
+}
+
+.index-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 0;
+  background: #8a1827;
+  transform: translateY(-50%);
+  transition: height 0.4s cubic-bezier(.2, .8, .2, 1);
+}
+
+.index-item.is-active::before {
+  height: 1.1em;
 }
 
 .index-item:hover {
@@ -686,7 +702,7 @@ watch(activeCategory, (val) => {
   font-style: italic;
   font-weight: 500;
   font-size: 0.86rem;
-  color: #c9bcbf;
+  color: #a7969a;
   letter-spacing: 0.02em;
   width: 1.6em;
   transition: color 0.4s ease;
@@ -697,25 +713,13 @@ watch(activeCategory, (val) => {
 .index-item-label {
   font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
   font-weight: 500;
-  position: relative;
-}
-
-.index-item.is-active .index-item-label::after {
-  content: '';
-  position: absolute;
-  left: -0.4em;
-  right: 0;
-  bottom: 0.05em;
-  height: 0.5em;
-  background: rgba(138, 24, 39, 0.08);
-  z-index: -1;
 }
 
 .index-item-count {
   font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
   font-style: italic;
   font-size: 0.74rem;
-  color: #c9bcbf;
+  color: #9a8a8d;
   letter-spacing: 0.04em;
 }
 
@@ -729,9 +733,9 @@ watch(activeCategory, (val) => {
   font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
   font-style: italic;
   font-size: 0.78rem;
-  color: #9499a3;
+  color: #6c7384;
   letter-spacing: 0.1em;
-  padding: 0 0 0.35rem;
+  padding: 0 0 0.35rem 0.6rem;
 }
 
 .index-series-item {
@@ -739,13 +743,13 @@ watch(activeCategory, (val) => {
   grid-template-columns: 1fr auto;
   gap: 0.5rem;
   align-items: baseline;
-  padding: 0.32rem 0.6rem 0.32rem 0;
+  padding: 0.32rem 0.6rem 0.32rem 0.6rem;
   background: transparent;
   border: 0;
   font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
   text-align: left;
   font-size: 0.86rem;
-  color: #9499a3;
+  color: #6c7384;
   cursor: pointer;
   transition: color 0.4s ease;
 }
@@ -761,7 +765,7 @@ watch(activeCategory, (val) => {
   font-style: italic;
   font-size: 0.7rem;
   color: inherit;
-  opacity: 0.7;
+  opacity: 0.85;
 }
 
 @media (max-width: 880px) {
@@ -820,7 +824,7 @@ watch(activeCategory, (val) => {
   place-content: center;
   justify-items: center;
   gap: 0.8rem;
-  color: #9499a3;
+  color: #6c7384;
   font-size: 0.95rem;
   letter-spacing: 0.04em;
 }
@@ -833,9 +837,33 @@ watch(activeCategory, (val) => {
 }
 
 .stage-image {
+  position: relative;
   display: block;
-  filter: drop-shadow(0 24px 40px rgba(22, 24, 31, 0.12));
   animation: paint 0.6s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.stage-image::before,
+.stage-image::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.stage-image::before {
+  left: -2px;
+  top: -2px;
+  border-top: 1px solid #16181f;
+  border-left: 1px solid #16181f;
+}
+
+.stage-image::after {
+  right: -2px;
+  bottom: -2px;
+  border-bottom: 1px solid #16181f;
+  border-right: 1px solid #16181f;
 }
 
 @keyframes paint {
@@ -861,7 +889,7 @@ watch(activeCategory, (val) => {
   transform: translateY(-50%);
   background: transparent;
   border: 0;
-  color: #b9bcc4;
+  color: #8a8f9c;
   font-family: inherit;
   cursor: pointer;
   opacity: 0;
@@ -922,59 +950,58 @@ watch(activeCategory, (val) => {
   margin: 0;
   font-size: 0.78rem;
   letter-spacing: 0.04em;
-  color: #6c7384;
+  color: #4a5061;
 }
 
 .caption-sep {
   font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
   font-style: italic;
-  color: #c9bcbf;
+  color: #a7969a;
 }
 
 .caption-desc {
   margin: 0.4rem 0 0;
   font-size: 0.86rem;
   line-height: 1.7;
-  color: #404553;
+  color: #2c3140;
   max-width: 56ch;
 }
 
 .caption-counter {
+  position: relative;
   display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: flex-end;
   font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
   font-style: italic;
-  font-size: 1.4rem;
   font-weight: 500;
-  color: #16181f;
-  letter-spacing: 0.02em;
+  line-height: 0.85;
   white-space: nowrap;
+  font-feature-settings: "lnum" 1;
 }
 
 .caption-counter em {
   font-style: italic;
 }
 
-.caption-counter em:first-child {
+.caption-counter-current {
+  font-size: 2.6rem;
   color: #8a1827;
-}
-
-.caption-counter-line {
-  display: inline-block;
-  width: 22px;
-  height: 1px;
-  background: #c9bcbf;
+  letter-spacing: 0.01em;
 }
 
 .caption-counter-total {
-  color: #9499a3;
-  font-size: 0.92em;
+  font-size: 1.05rem;
+  color: #6c7384;
+  letter-spacing: 0.04em;
+  margin-left: -0.42em;
+  transform: translateY(0.1em);
 }
 
 @media (max-width: 720px) {
   .caption { grid-template-columns: 1fr; }
-  .caption-counter { justify-self: end; font-size: 1.2rem; }
+  .caption-counter { justify-self: end; }
+  .caption-counter-current { font-size: 2rem; }
+  .caption-counter-total { font-size: 0.9rem; }
 }
 
 /* ───── Filmstrip ───── */
@@ -1042,7 +1069,7 @@ watch(activeCategory, (val) => {
   font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
   font-style: italic;
   font-size: 0.92rem;
-  color: #9499a3;
+  color: #6c7384;
   letter-spacing: 0.04em;
   padding: 1rem;
 }

@@ -1,4 +1,4 @@
-import { SELECTED_PREFIX } from '~~/shared/home-slots'
+import { CAROUSEL_PREFIX, SELECTED_PREFIX } from '~~/shared/home-slots'
 import { assertAdmin } from '~~/server/utils/auth'
 import { asc, eq, tables, useDrizzle } from '~~/server/utils/drizzle'
 
@@ -34,14 +34,18 @@ export default defineEventHandler(async (event) => {
 
   const slots: Record<string, typeof rows[number]> = {}
   const selected: typeof rows = []
+  const carousel: typeof rows = []
   for (const row of rows) {
     if (row.slotKey.startsWith(SELECTED_PREFIX)) {
       selected.push(row)
+    }
+    else if (row.slotKey.startsWith(CAROUSEL_PREFIX)) {
+      carousel.push(row)
     }
     else {
       slots[row.slotKey] = row
     }
   }
 
-  return { slots, selected }
+  return { slots, selected, carousel }
 })

@@ -103,6 +103,19 @@ const SELECTED_DEFAULT_PATHS: string[] = [
   '/images/snowcake47/anime-fanart/code-geass/euphemia-good-night.jpg',
 ]
 
+const CAROUSEL_DEFAULT_PATHS: string[] = [
+  '/images/snowcake47/original-oc/Ekac/Ekac-1.png',
+  '/images/snowcake47/anime-fanart/vocaloid/racing-miku.jpg',
+  '/images/snowcake47/anime-fanart/vocaloid/hatsune-miku.jpg',
+  '/images/snowcake47/original-oc/Ekac/Ekac-2.jpg',
+  '/images/snowcake47/game-fanart/danganronpa/chiaki-nanami.jpg',
+  '/images/snowcake47/game-fanart/danganronpa/tsumugi-shirogane.jpg',
+  '/images/snowcake47/game-fanart/honkai-star-rail/Firefly.png',
+  '/images/snowcake47/game-fanart/honkai-star-rail/Hysilens.png',
+  '/images/snowcake47/game-fanart/honkai-star-rail/evernight.jpg',
+  '/images/snowcake47/anime-fanart/sousou-no-frieren/red-dress-portrait.jpg',
+]
+
 const BRAND_FILES: { src: string; key: string }[] = [
   { src: '/images/snowcake47/brand/avatar.jpg', key: 'brand/avatar.jpg' },
 ]
@@ -159,6 +172,7 @@ export default defineEventHandler(async (event) => {
     artworks: { created: 0, existing: 0, missing: 0 },
     homeSlots: { set: 0, missing: 0 },
     selected: { set: 0, missing: 0 },
+    carousel: { set: 0, missing: 0 },
     brand: { uploaded: 0, missing: 0 },
   }
 
@@ -287,6 +301,24 @@ export default defineEventHandler(async (event) => {
       updatedAt: new Date(),
     }).run()
     summary.selected.set++
+  }
+
+  // 3c. Carousel — wipe + reseed
+  await db.delete(tables.homeSlots).where(like(tables.homeSlots.slotKey, 'carousel.%')).run()
+  let carouselPos = 0
+  for (const src of CAROUSEL_DEFAULT_PATHS) {
+    const artworkId = artworkBySrc.get(src)
+    if (!artworkId) {
+      summary.carousel.missing++
+      continue
+    }
+    await db.insert(tables.homeSlots).values({
+      slotKey: `carousel.${artworkId}`,
+      artworkId,
+      position: carouselPos++,
+      updatedAt: new Date(),
+    }).run()
+    summary.carousel.set++
   }
 
   // 4. Brand assets

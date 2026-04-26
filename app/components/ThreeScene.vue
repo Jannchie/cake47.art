@@ -125,25 +125,28 @@ onMounted(async () => {
     document.body.style.touchAction = 'pan-y'
   }
   const orbitState = { offset: 0, cardYaw: 0 }
-  const imgPathList = [
-    '/images/snowcake47/original-oc/Ekac/Ekac-1.png',
-    '/images/snowcake47/anime-fanart/vocaloid/racing-miku.jpg',
-    '/images/snowcake47/anime-fanart/vocaloid/hatsune-miku.jpg',
-    '/images/snowcake47/original-oc/Ekac/Ekac-2.jpg',
-    '/images/snowcake47/game-fanart/danganronpa/chiaki-nanami.jpg',
-    '/images/snowcake47/game-fanart/danganronpa/tsumugi-shirogane.jpg',
-    '/images/snowcake47/game-fanart/honkai-star-rail/Firefly.png',
-    '/images/snowcake47/game-fanart/honkai-star-rail/Hysilens.png',
-    '/images/snowcake47/game-fanart/honkai-star-rail/evernight.jpg',
-    '/images/snowcake47/anime-fanart/sousou-no-frieren/red-dress-portrait.jpg',
-  ]
+
+  let imgPathList: string[] = []
+  try {
+    const layout = await $fetch<{ carousel?: { url: string }[] }>('/api/home/layout')
+    imgPathList = (layout.carousel ?? []).map(c => c.url)
+  }
+  catch (error) {
+    console.error('failed to load home/layout for carousel', error)
+  }
+
+  if (imgPathList.length === 0) {
+    loading.value = false
+    return
+  }
 
   // Load every candidate texture in parallel, then keep only portrait ones (height > width).
   const candidates = await Promise.all(imgPathList.map(async path => ({
     path,
-    texture: await loadTextureWithPromise(path),
+    texture: await loadTextureWithPromise(path).catch(() => null),
   })))
   const portraitTextures = candidates
+    .filter((c): c is { path: string; texture: THREE.Texture } => !!c.texture)
     .filter(({ texture }) => texture.image.height > texture.image.width)
     .map(({ texture }) => texture)
 
