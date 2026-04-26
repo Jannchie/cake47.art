@@ -30,7 +30,7 @@ const copyByLocale: Record<Locale, {
     navEkac: 'Ekac',
     navCollection: 'Collection',
     navArchive: '作品集',
-    works: '精选作品',
+    works: '作品',
     collection: '创作方向',
     profile: '关于私期',
     profileBio: '插画师。兴趣是打卡各种美食，并在 Google Maps 留下评价。',
@@ -46,7 +46,7 @@ const copyByLocale: Record<Locale, {
     navEkac: 'Ekac',
     navCollection: 'Collection',
     navArchive: 'Gallery',
-    works: 'Selected Works',
+    works: 'Works',
     collection: 'Collection',
     profile: 'About snowcake47',
     profileBio: 'Illustrator. Spends free time hopping between restaurants and leaving Google Maps reviews.',
@@ -62,7 +62,7 @@ const copyByLocale: Record<Locale, {
     navEkac: 'Ekac',
     navCollection: 'Collection',
     navArchive: '作品集',
-    works: 'ピックアップ',
+    works: '作品',
     collection: 'カテゴリ',
     profile: '私期について',
     profileBio: 'イラストレーター。趣味はあちこちのお店を巡り、Google マップにレビューを残すこと。',
@@ -300,6 +300,8 @@ onMounted(() => {
       </div>
     </section>
 
+    <SectionFlow variant="sweep" />
+
     <section id="profile" class="profile">
       <div class="profile-grid">
         <div class="profile-portrait" data-reveal>
@@ -317,6 +319,8 @@ onMounted(() => {
         </div>
       </div>
     </section>
+
+    <SectionFlow variant="corner" />
 
     <section id="works" class="works">
       <div class="section-head" data-reveal>
@@ -389,6 +393,8 @@ onMounted(() => {
       </div>
     </section>
 
+    <SectionFlow variant="split" />
+
     <section id="ekac" class="ekac">
       <div class="section-head" data-reveal>
         <span class="section-num">03 / Ekac</span>
@@ -419,6 +425,8 @@ onMounted(() => {
         </figure>
       </div>
     </section>
+
+    <SectionFlow variant="cluster" mirror />
 
     <section id="collection" class="categories">
       <div class="section-head" data-reveal>
@@ -458,6 +466,8 @@ onMounted(() => {
         </article>
       </div>
     </section>
+
+    <SectionFlow variant="mark" />
 
     <section id="contact" class="contact">
       <div class="section-head" data-reveal>

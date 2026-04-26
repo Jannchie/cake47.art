@@ -48,9 +48,9 @@ export const artworkCategories: ArtworkCategory[] = [
     id: 'original-oc',
     icon: 'lucide:sparkles',
     label: {
-      'zh-CN': '原创 OC 角色',
-      en: 'Original OC',
-      ja: 'オリジナル OC',
+      'zh-CN': '原创角色',
+      en: 'Original Characters',
+      ja: 'オリジナルキャラクター',
     },
     description: {
       'zh-CN': '原创角色、生日图与个人创作。',
