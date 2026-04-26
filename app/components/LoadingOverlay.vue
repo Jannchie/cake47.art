@@ -407,12 +407,36 @@ function hexToVec3(hex: string): THREE.Vector3 {
   return new THREE.Vector3(c.r, c.g, c.b)
 }
 
+const INTRO_FLAG = 'cake47-intro-played'
+
 onMounted(() => {
+  const alreadyPlayed = (() => {
+    try {
+      return window.sessionStorage.getItem(INTRO_FLAG) === '1'
+    }
+    catch {
+      return false
+    }
+  })()
+
+  if (alreadyPlayed) {
+    visible.value = false
+    return
+  }
+
   const total = 4200
   const fadeStart = 3500
 
   timers.push(window.setTimeout(() => { fading.value = true }, fadeStart))
-  timers.push(window.setTimeout(() => { visible.value = false }, total))
+  timers.push(window.setTimeout(() => {
+    visible.value = false
+    try {
+      window.sessionStorage.setItem(INTRO_FLAG, '1')
+    }
+    catch {
+      // ignore storage errors (private mode, etc.)
+    }
+  }, total))
 
   document.documentElement.style.overflow = 'hidden'
   timers.push(window.setTimeout(() => {

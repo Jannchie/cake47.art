@@ -1,0 +1,1053 @@
+<script setup lang="ts">
+import type { Locale } from '~/utils/useLocale'
+
+interface CategoryRow {
+  id: string
+  icon: string
+  labelZh: string
+  labelEn: string
+  labelJa: string
+  descriptionZh: string
+  descriptionEn: string
+  descriptionJa: string
+  sortOrder: number
+}
+
+interface SeriesRow {
+  id: string
+  slug: string
+  categoryId: string
+  nameZh: string
+  nameEn: string
+  nameJa: string
+  descriptionZh: string
+  descriptionEn: string
+  descriptionJa: string
+  coverArtworkId: string | null
+  coverUrl: string | null
+  sortOrder: number
+  artworkCount: number
+}
+
+interface ArtworkRow {
+  id: string
+  seriesId: string
+  seriesSlug: string
+  seriesNameZh: string
+  seriesNameEn: string
+  seriesNameJa: string
+  categoryId: string
+  titleZh: string
+  titleEn: string
+  titleJa: string
+  descriptionZh: string
+  descriptionEn: string
+  descriptionJa: string
+  url: string
+  width: number
+  height: number
+  mimeType: string
+  objectPosition: string | null
+  featured: boolean
+  sortOrder: number
+  createdAt: number
+}
+
+const { locale, setLocale, locales } = useLocaleState()
+
+const localeMeta: Record<Locale, { label: string }> = {
+  'zh-CN': { label: 'CN' },
+  'en': { label: 'EN' },
+  'ja': { label: 'JP' },
+}
+
+const copy = computed(() => {
+  const map: Record<Locale, {
+    backHome: string
+    allCategories: string
+    series: string
+    empty: string
+    metaCreated: string
+    countOf: string
+  }> = {
+    'zh-CN': {
+      backHome: '返回',
+      allCategories: '全部',
+      series: '系列',
+      empty: '暂无作品',
+      metaCreated: '收录',
+      countOf: '/',
+    },
+    en: {
+      backHome: 'Back',
+      allCategories: 'All',
+      series: 'Series',
+      empty: 'No works yet',
+      metaCreated: 'Filed',
+      countOf: '/',
+    },
+    ja: {
+      backHome: '戻る',
+      allCategories: 'すべて',
+      series: 'シリーズ',
+      empty: '作品はまだありません',
+      metaCreated: '収録',
+      countOf: '/',
+    },
+  }
+  return map[locale.value]
+})
+
+useHead(() => ({
+  htmlAttrs: { lang: locale.value },
+  title: 'cake47.art',
+}))
+
+useSeoMeta({
+  description: () => 'cake47.art / snowcake47',
+})
+
+const { data: indexData } = await useFetch('/api/gallery')
+const categories = computed<CategoryRow[]>(() => indexData.value?.categories ?? [])
+const series = computed<SeriesRow[]>(() => indexData.value?.series ?? [])
+
+const route = useRoute()
+const router = useRouter()
+
+function readQueryString(value: unknown): string | null {
+  if (Array.isArray(value)) {
+    return typeof value[0] === 'string' ? value[0] : null
+  }
+  return typeof value === 'string' ? value : null
+}
+
+const activeCategory = computed(() => readQueryString(route.query.category))
+const activeSeries = computed(() => readQueryString(route.query.series))
+
+function applyFilter(patch: Record<string, string | null>) {
+  const next = { ...route.query }
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null) {
+      delete next[key]
+    }
+    else {
+      next[key] = value
+    }
+  }
+  router.replace({ query: next })
+}
+
+const visibleSeries = computed(() => {
+  if (!activeCategory.value) {
+    return series.value
+  }
+  return series.value.filter(s => s.categoryId === activeCategory.value)
+})
+
+const artworksQuery = computed(() => {
+  const params: Record<string, string> = {}
+  if (activeCategory.value) {
+    params.category = activeCategory.value
+  }
+  if (activeSeries.value) {
+    params.series = activeSeries.value
+  }
+  params.limit = '200'
+  return params
+})
+
+const { data: artworksData } = await useFetch('/api/gallery/artworks', {
+  query: artworksQuery,
+  watch: [artworksQuery],
+})
+const artworks = computed<ArtworkRow[]>(() => artworksData.value?.items ?? [])
+const totalCount = computed(() => artworks.value.length)
+
+const currentIndex = ref(0)
+const filmstripRef = ref<HTMLElement | null>(null)
+
+watch(artworks, () => {
+  currentIndex.value = 0
+})
+
+const currentArtwork = computed(() => artworks.value[currentIndex.value] ?? null)
+
+function selectIndex(i: number) {
+  if (i < 0 || i >= artworks.value.length) {
+    return
+  }
+  currentIndex.value = i
+  scrollFilmstripToCurrent()
+}
+
+function next() {
+  if (artworks.value.length === 0) {
+    return
+  }
+  currentIndex.value = (currentIndex.value + 1) % artworks.value.length
+  scrollFilmstripToCurrent()
+}
+
+function prev() {
+  if (artworks.value.length === 0) {
+    return
+  }
+  currentIndex.value = (currentIndex.value - 1 + artworks.value.length) % artworks.value.length
+  scrollFilmstripToCurrent()
+}
+
+function scrollFilmstripToCurrent() {
+  nextTick(() => {
+    const strip = filmstripRef.value
+    if (!strip) {
+      return
+    }
+    const target = strip.querySelector<HTMLElement>(`[data-thumb-idx="${currentIndex.value}"]`)
+    if (!target) {
+      return
+    }
+    target.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  })
+}
+
+function localizedSeriesName(s: SeriesRow) {
+  if (locale.value === 'zh-CN') {
+    return s.nameZh
+  }
+  if (locale.value === 'ja') {
+    return s.nameJa
+  }
+  return s.nameEn
+}
+function localizedCategoryName(c: CategoryRow) {
+  if (locale.value === 'zh-CN') {
+    return c.labelZh
+  }
+  if (locale.value === 'ja') {
+    return c.labelJa
+  }
+  return c.labelEn
+}
+function localizedTitle(a: ArtworkRow) {
+  if (locale.value === 'zh-CN') {
+    return a.titleZh || a.seriesNameZh
+  }
+  if (locale.value === 'ja') {
+    return a.titleJa || a.seriesNameJa
+  }
+  return a.titleEn || a.seriesNameEn
+}
+function localizedSeriesText(a: ArtworkRow) {
+  if (locale.value === 'zh-CN') {
+    return a.seriesNameZh
+  }
+  if (locale.value === 'ja') {
+    return a.seriesNameJa
+  }
+  return a.seriesNameEn
+}
+function localizedDescription(a: ArtworkRow) {
+  if (locale.value === 'zh-CN') {
+    return a.descriptionZh
+  }
+  if (locale.value === 'ja') {
+    return a.descriptionJa
+  }
+  return a.descriptionEn
+}
+function categoryById(id: string | null) {
+  if (!id) {
+    return null
+  }
+  return categories.value.find(c => c.id === id) ?? null
+}
+
+function categoryArtworkCount(catId: string) {
+  return artworks.value.filter(a => a.categoryId === catId).length
+}
+
+function formatDate(value: number | string | Date | null | undefined): string {
+  if (!value) {
+    return '—'
+  }
+  const date = typeof value === 'object' ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return '—'
+  }
+  const lang = locale.value === 'en' ? 'en-US' : locale.value
+  return date.toLocaleDateString(lang, { year: 'numeric', month: 'short', day: '2-digit' })
+}
+
+function onKeydown(event: KeyboardEvent) {
+  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+    return
+  }
+  if (event.key === 'ArrowRight') {
+    event.preventDefault()
+    next()
+  }
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault()
+    prev()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+  scrollFilmstripToCurrent()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+})
+
+watch(activeCategory, (val) => {
+  if (val && activeSeries.value) {
+    const stillBelongs = series.value.find(s => s.slug === activeSeries.value && s.categoryId === val)
+    if (!stillBelongs) {
+      applyFilter({ series: null })
+    }
+  }
+})
+</script>
+
+<template>
+  <main class="hall">
+    <div class="hall-grain" aria-hidden="true" />
+
+    <NuxtLink :to="`/${locale}`" class="hall-back">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M19 12H5M12 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>{{ copy.backHome }}</span>
+    </NuxtLink>
+
+    <div class="hall-locales">
+      <button
+        v-for="code in locales"
+        :key="code"
+        type="button"
+        class="hall-locale"
+        :class="{ 'is-active': locale === code }"
+        @click="setLocale(code)"
+      >
+        {{ localeMeta[code].label }}
+      </button>
+    </div>
+
+    <aside class="index">
+      <NuxtLink :to="`/${locale}`" class="index-brand">
+        <span class="index-brand-mark">
+          <img :src="'/api/files/brand/avatar.jpg'" alt="snowcake47">
+        </span>
+        <span class="index-brand-text">
+          <strong>cake47.art</strong>
+          <small>snowcake47 ✦ 私期</small>
+        </span>
+      </NuxtLink>
+
+      <nav class="index-list">
+        <button
+          type="button"
+          class="index-item"
+          :class="{ 'is-active': !activeCategory }"
+          @click="applyFilter({ category: null, series: null })"
+        >
+          <span class="index-item-num">00</span>
+          <span class="index-item-label">{{ copy.allCategories }}</span>
+          <span class="index-item-count">{{ totalCount }}</span>
+        </button>
+        <button
+          v-for="(cat, idx) in categories"
+          :key="cat.id"
+          type="button"
+          class="index-item"
+          :class="{ 'is-active': activeCategory === cat.id }"
+          @click="applyFilter({ category: activeCategory === cat.id ? null : cat.id, series: null })"
+        >
+          <span class="index-item-num">{{ String(idx + 1).padStart(2, '0') }}</span>
+          <span class="index-item-label">{{ localizedCategoryName(cat) }}</span>
+          <span class="index-item-count">{{ categoryArtworkCount(cat.id) || '·' }}</span>
+        </button>
+      </nav>
+
+      <Transition name="fade-soft">
+        <nav v-if="visibleSeries.length > 0" class="index-series">
+          <header>— {{ copy.series }}</header>
+          <button
+            type="button"
+            class="index-series-item"
+            :class="{ 'is-active': !activeSeries }"
+            @click="applyFilter({ series: null })"
+          >
+            <span>{{ copy.allCategories }}</span>
+          </button>
+          <button
+            v-for="s in visibleSeries"
+            :key="s.id"
+            type="button"
+            class="index-series-item"
+            :class="{ 'is-active': activeSeries === s.slug }"
+            @click="applyFilter({ series: activeSeries === s.slug ? null : s.slug })"
+          >
+            <span>{{ localizedSeriesName(s) }}</span>
+            <small>{{ s.artworkCount }}</small>
+          </button>
+        </nav>
+      </Transition>
+    </aside>
+
+    <section class="stage">
+      <div class="stage-canvas">
+        <div v-if="!currentArtwork" class="stage-empty">
+          <span class="stage-empty-mark" aria-hidden="true">∅</span>
+          <p>{{ copy.empty }}</p>
+        </div>
+
+        <div v-else :key="currentArtwork.id" class="stage-image">
+          <img
+            :src="currentArtwork.url"
+            :alt="localizedTitle(currentArtwork)"
+            decoding="async"
+          >
+        </div>
+
+        <button
+          v-if="totalCount > 1"
+          type="button"
+          class="stage-nav stage-nav-prev"
+          aria-label="previous"
+          @click="prev"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <button
+          v-if="totalCount > 1"
+          type="button"
+          class="stage-nav stage-nav-next"
+          aria-label="next"
+          @click="next"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+      <footer v-if="currentArtwork" class="caption">
+        <div class="caption-text">
+          <h2 class="caption-title">{{ localizedTitle(currentArtwork) }}</h2>
+          <p class="caption-meta">
+            <span>{{ localizedSeriesText(currentArtwork) }}</span>
+            <span class="caption-sep" aria-hidden="true">/</span>
+            <span>
+              {{
+                categoryById(currentArtwork.categoryId)
+                  ? localizedCategoryName(categoryById(currentArtwork.categoryId)!)
+                  : currentArtwork.categoryId
+              }}
+            </span>
+            <template v-if="currentArtwork.width > 0">
+              <span class="caption-sep" aria-hidden="true">/</span>
+              <span>{{ currentArtwork.width }} × {{ currentArtwork.height }}</span>
+            </template>
+            <span class="caption-sep" aria-hidden="true">/</span>
+            <span>{{ formatDate(currentArtwork.createdAt) }}</span>
+          </p>
+          <p v-if="localizedDescription(currentArtwork)" class="caption-desc">
+            {{ localizedDescription(currentArtwork) }}
+          </p>
+        </div>
+
+        <div class="caption-counter" aria-hidden="true">
+          <em>{{ String(currentIndex + 1).padStart(3, '0') }}</em>
+          <span class="caption-counter-line" />
+          <em class="caption-counter-total">{{ String(totalCount).padStart(3, '0') }}</em>
+        </div>
+      </footer>
+
+      <div class="film">
+        <div ref="filmstripRef" class="film-strip">
+          <button
+            v-for="(a, idx) in artworks"
+            :key="a.id"
+            type="button"
+            class="film-thumb"
+            :class="{ 'is-active': idx === currentIndex }"
+            :data-thumb-idx="idx"
+            :title="localizedTitle(a)"
+            @click="selectIndex(idx)"
+          >
+            <img :src="a.url" :alt="localizedTitle(a)" loading="lazy" :style="{ objectPosition: a.objectPosition ?? '50% 30%' }">
+          </button>
+          <div v-if="totalCount === 0" class="film-empty">
+            {{ copy.empty }}
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</template>
+
+<style scoped>
+.hall {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  background:
+    radial-gradient(circle at 18% 10%, #f6f3f3 0%, transparent 38%),
+    radial-gradient(circle at 88% 92%, rgba(138, 24, 39, 0.05) 0%, transparent 42%),
+    #f8f7f7;
+  color: #16181f;
+  font-family: 'Shippori Mincho', 'Noto Serif JP', 'Source Han Serif', serif;
+  overflow: hidden;
+}
+
+.hall-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  mix-blend-mode: multiply;
+  opacity: 0.32;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+@media (max-width: 880px) {
+  .hall {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+}
+
+/* ───── Floating corner controls ───── */
+.hall-back {
+  position: absolute;
+  top: 1.4rem;
+  left: 1.4rem;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #6c7384;
+  transition: color 0.4s ease;
+}
+
+.hall-back svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.4s cubic-bezier(.2, .8, .2, 1);
+}
+
+.hall-back:hover { color: #8a1827; }
+.hall-back:hover svg { transform: translateX(-3px); }
+
+.hall-locales {
+  position: absolute;
+  top: 1.4rem;
+  right: 1.4rem;
+  z-index: 5;
+  display: inline-flex;
+  gap: 0.45rem;
+}
+
+.hall-locale {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #b9bcc4;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.hall-locale:hover { color: #16181f; }
+
+.hall-locale.is-active {
+  color: #8a1827;
+  position: relative;
+}
+
+.hall-locale.is-active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 1px;
+  background: #8a1827;
+}
+
+/* ───── Index column ───── */
+.index {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 4.5rem 0 1.6rem 2rem;
+  overflow-y: auto;
+}
+
+.index-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-bottom: 2rem;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.index-brand::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0.6rem;
+  width: 28px;
+  height: 1px;
+  background: #8a1827;
+  opacity: 0.7;
+}
+
+.index-brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.index-brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.index-brand-text {
+  display: grid;
+  line-height: 1.15;
+}
+
+.index-brand-text strong {
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.index-brand-text small {
+  font-size: 0.62rem;
+  color: #9499a3;
+  letter-spacing: 0.1em;
+  margin-top: 0.2rem;
+}
+
+.index-list { display: grid; gap: 0.05rem; }
+
+.index-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 0.7rem;
+  padding: 0.55rem 0.6rem 0.55rem 0;
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+  text-align: left;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  color: #6c7384;
+  cursor: pointer;
+  transition: color 0.4s cubic-bezier(.2, .8, .2, 1);
+}
+
+.index-item:hover {
+  color: #16181f;
+}
+
+.index-item.is-active {
+  color: #16181f;
+}
+
+.index-item.is-active .index-item-num { color: #8a1827; }
+
+.index-item-num {
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 0.86rem;
+  color: #c9bcbf;
+  letter-spacing: 0.02em;
+  width: 1.6em;
+  transition: color 0.4s ease;
+}
+
+.index-item:hover .index-item-num { color: #8a1827; }
+
+.index-item-label {
+  font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
+  font-weight: 500;
+  position: relative;
+}
+
+.index-item.is-active .index-item-label::after {
+  content: '';
+  position: absolute;
+  left: -0.4em;
+  right: 0;
+  bottom: 0.05em;
+  height: 0.5em;
+  background: rgba(138, 24, 39, 0.08);
+  z-index: -1;
+}
+
+.index-item-count {
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.74rem;
+  color: #c9bcbf;
+  letter-spacing: 0.04em;
+}
+
+.index-series {
+  display: grid;
+  gap: 0.05rem;
+  margin-top: 1.4rem;
+}
+
+.index-series header {
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.78rem;
+  color: #9499a3;
+  letter-spacing: 0.1em;
+  padding: 0 0 0.35rem;
+}
+
+.index-series-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.32rem 0.6rem 0.32rem 0;
+  background: transparent;
+  border: 0;
+  font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
+  text-align: left;
+  font-size: 0.86rem;
+  color: #9499a3;
+  cursor: pointer;
+  transition: color 0.4s ease;
+}
+
+.index-series-item:hover { color: #16181f; }
+
+.index-series-item.is-active {
+  color: #8a1827;
+}
+
+.index-series-item small {
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.7rem;
+  color: inherit;
+  opacity: 0.7;
+}
+
+@media (max-width: 880px) {
+  .index {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 4.4rem 1.2rem 1rem;
+  }
+  .index-brand { padding: 0; margin: 0 1rem 0 0; }
+  .index-brand::after { display: none; }
+  .index-list { display: flex; flex-wrap: wrap; gap: 0.2rem 0.5rem; }
+  .index-item { padding: 0.3rem 0.4rem; }
+  .index-series { display: none; }
+}
+
+/* ───── Stage ───── */
+.stage {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 2.6rem 3rem 1.4rem 1.4rem;
+  overflow: hidden;
+}
+
+@media (max-width: 880px) {
+  .stage { padding: 1rem 1.2rem 1rem; }
+}
+
+.stage-canvas {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  place-items: stretch;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.4rem;
+  overflow: hidden;
+}
+
+.stage-canvas > * {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.stage-empty {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.8rem;
+  color: #9499a3;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+
+.stage-empty-mark {
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-size: 4rem;
+  color: #8a1827;
+  opacity: 0.4;
+}
+
+.stage-image {
+  display: block;
+  filter: drop-shadow(0 24px 40px rgba(22, 24, 31, 0.12));
+  animation: paint 0.6s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+@keyframes paint {
+  0% { opacity: 0; transform: translateY(10px) scale(0.985); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.stage-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.stage-nav {
+  position: absolute;
+  top: 50%;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 0;
+  color: #b9bcc4;
+  font-family: inherit;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.5s ease, color 0.4s ease, transform 0.4s ease;
+}
+
+.stage-nav svg {
+  width: 28px;
+  height: 28px;
+}
+
+.stage-canvas:hover .stage-nav { opacity: 1; }
+
+.stage-nav:hover { color: #8a1827; }
+
+.stage-nav-prev { left: -0.4rem; }
+.stage-nav-next { right: -0.4rem; }
+
+.stage-nav-prev:hover { transform: translateY(-50%) translateX(-3px); }
+.stage-nav-next:hover { transform: translateY(-50%) translateX(3px); }
+
+@media (max-width: 720px) {
+  .stage-nav { display: none; }
+}
+
+/* ───── Caption ───── */
+.caption {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 1.6rem;
+  padding: 1.4rem 0.4rem 0.6rem;
+}
+
+.caption-text {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.caption-title {
+  margin: 0;
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', 'Noto Serif JP', serif;
+  font-size: clamp(1.4rem, 2vw, 1.85rem);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: #16181f;
+  line-height: 1.15;
+}
+
+.caption-title::first-letter { color: #8a1827; }
+
+.caption-meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: #6c7384;
+}
+
+.caption-sep {
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-style: italic;
+  color: #c9bcbf;
+}
+
+.caption-desc {
+  margin: 0.4rem 0 0;
+  font-size: 0.86rem;
+  line-height: 1.7;
+  color: #404553;
+  max-width: 56ch;
+}
+
+.caption-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: #16181f;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.caption-counter em {
+  font-style: italic;
+}
+
+.caption-counter em:first-child {
+  color: #8a1827;
+}
+
+.caption-counter-line {
+  display: inline-block;
+  width: 22px;
+  height: 1px;
+  background: #c9bcbf;
+}
+
+.caption-counter-total {
+  color: #9499a3;
+  font-size: 0.92em;
+}
+
+@media (max-width: 720px) {
+  .caption { grid-template-columns: 1fr; }
+  .caption-counter { justify-self: end; font-size: 1.2rem; }
+}
+
+/* ───── Filmstrip ───── */
+.film {
+  position: relative;
+  padding: 0.4rem 0 0.2rem;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+
+.film-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.film-strip::-webkit-scrollbar { display: none; }
+
+.film-thumb {
+  position: relative;
+  flex: 0 0 auto;
+  width: 56px;
+  height: 70px;
+  background: #efece9;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  filter: grayscale(0.4);
+  opacity: 0.6;
+  transform-origin: center bottom;
+  transition: filter 0.5s ease, opacity 0.5s ease, transform 0.5s cubic-bezier(.2, .8, .2, 1);
+}
+
+.film-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.film-thumb:hover {
+  opacity: 1;
+  filter: grayscale(0);
+  transform: translateY(-3px);
+}
+
+.film-thumb.is-active {
+  opacity: 1;
+  filter: grayscale(0);
+  width: 70px;
+  height: 88px;
+  outline: 1px solid #8a1827;
+  outline-offset: 3px;
+}
+
+.film-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.92rem;
+  color: #9499a3;
+  letter-spacing: 0.04em;
+  padding: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>

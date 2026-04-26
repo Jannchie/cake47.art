@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import * as THREE from 'three'
-import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js'
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 const threeSceneRef = ref<HTMLDivElement | null>(null)
@@ -61,11 +58,15 @@ function loadTextureWithPromise(url: string) {
   return new Promise<THREE.Texture>((resolve, reject) => {
     new THREE.TextureLoader().load(
       url,
-      (texture) => { // onLoad callback
+      (texture) => {
+        // Three r155+ renders in linear space by default. Album-art textures
+        // are authored in sRGB, so flag them or they look washed out.
+        texture.colorSpace = THREE.SRGBColorSpace
+        texture.anisotropy = 4
         resolve(texture)
       },
-      undefined, // onProgress callback, 不使用可以为undefined
-      (error) => { // onError callback
+      undefined,
+      (error) => {
         reject(new Error(`Error loading texture: ${error}`))
       },
     )
@@ -113,6 +114,7 @@ onMounted(async () => {
   const camera = new THREE.PerspectiveCamera(50, threeSceneRef.value.clientWidth / threeSceneRef.value.clientHeight, 0.1, 200)
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
   renderer.setClearColor(new THREE.Color(0xF3_F2_F3), 1)
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.setSize(threeSceneRef.value.clientWidth, threeSceneRef.value.clientHeight)
   renderer.domElement.style.cursor = props.decorative ? 'default' : 'grab'
   renderer.domElement.style.touchAction = 'pan-y'
@@ -155,26 +157,6 @@ onMounted(async () => {
 
   camera.position.copy(new THREE.Vector3(-4, -1.25, 9))
   camera.rotation.y = 180
-
-  // 在 scene 绘制坐标轴网格
-  // const axesHelper = new THREE.AxesHelper(5)
-  // scene.add(axesHelper)
-
-  const composer = new EffectComposer(renderer)
-
-  const renderPass = new RenderPass(scene, camera)
-  composer.addPass(renderPass)
-
-  const bokehPass = new BokehPass(scene, camera, {
-    focus: 5,
-    aperture: 0.001,
-    maxblur: 0.01,
-  })
-  composer.addPass(bokehPass)
-
-  // 允许鼠标控制相机
-  // const controls = new OrbitControls(camera, renderer.domElement)
-  // controls.enableDamping = true
 
   const orbitOffsetPerPixel = 0.00004
   const inertiaDamping = 0.0035
@@ -290,9 +272,8 @@ onMounted(async () => {
     cardYawVelocity *= Math.exp(-cardYawDamping * deltaTime)
     orbitState.cardYaw += cardYawVelocity * frameScale
 
-    // controls.update()
     camera.lookAt(scene.position)
-    composer.render()
+    renderer.render(scene, camera)
   }
   animate()
   loading.value = false
@@ -301,15 +282,12 @@ onMounted(async () => {
     if (!threeSceneRef.value) {
       return
     }
-    // 更新相机的纵横比
-    camera.aspect = threeSceneRef.value.clientWidth / threeSceneRef.value.clientHeight
-
-    // 更新相机的投影矩阵
+    const w = threeSceneRef.value.clientWidth
+    const h = threeSceneRef.value.clientHeight
+    camera.aspect = w / h
     camera.updateProjectionMatrix()
-    renderer.setSize(threeSceneRef.value.clientWidth, threeSceneRef.value.clientHeight)
-    renderer.setPixelRatio(window.devicePixelRatio)
-    composer.setSize(threeSceneRef.value.clientWidth, threeSceneRef.value.clientHeight)
-    bokehPass.setSize(threeSceneRef.value.clientWidth, threeSceneRef.value.clientHeight)
+    renderer.setSize(w, h)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   }
 
   window.addEventListener('resize', handleResize, false)

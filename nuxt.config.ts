@@ -11,4 +11,16 @@ export default defineNuxtConfig({
     '@nuxthub/core',
   ],
   css: ['~/assets/css/main.css'],
+  hub: {
+    database: true,
+    blob: true,
+  },
+  nitro: {
+    experimental: {
+      tasks: true,
+    },
+  },
+  runtimeConfig: {
+    adminToken: '',
+  },
 })

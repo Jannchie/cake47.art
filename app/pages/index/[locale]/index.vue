@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { artworkCategories, artworks, seriesLabels, type Artwork, type ArtworkCategoryId } from '~/data/artworks'
+import { artworkCategories, type ArtworkCategoryId } from '~/data/artworks'
 import type { Locale } from '~/utils/useLocale'
 
 setHtmlLangByLocale()
@@ -11,6 +11,9 @@ const copyByLocale: Record<Locale, {
   navWorks: string
   navProfile: string
   navContact: string
+  navEkac: string
+  navCollection: string
+  navArchive: string
   works: string
   collection: string
   profile: string
@@ -18,11 +21,15 @@ const copyByLocale: Record<Locale, {
   contact: string
   open: string
   ekac: string
+  scrollCue: string
 }> = {
   'zh-CN': {
     navWorks: 'Works',
     navProfile: 'Profile',
     navContact: 'Contact',
+    navEkac: 'Ekac',
+    navCollection: 'Collection',
+    navArchive: '作品集',
     works: '精选作品',
     collection: '创作方向',
     profile: '关于私期',
@@ -30,11 +37,15 @@ const copyByLocale: Record<Locale, {
     contact: '联络',
     open: '前往',
     ekac: 'Ekac',
+    scrollCue: '向下浏览',
   },
   en: {
     navWorks: 'Works',
     navProfile: 'Profile',
     navContact: 'Contact',
+    navEkac: 'Ekac',
+    navCollection: 'Collection',
+    navArchive: 'Gallery',
     works: 'Selected Works',
     collection: 'Collection',
     profile: 'About snowcake47',
@@ -42,11 +53,15 @@ const copyByLocale: Record<Locale, {
     contact: 'Contact',
     open: 'visit',
     ekac: 'Ekac',
+    scrollCue: 'Scroll',
   },
   ja: {
     navWorks: 'Works',
     navProfile: 'Profile',
     navContact: 'Contact',
+    navEkac: 'Ekac',
+    navCollection: 'Collection',
+    navArchive: '作品集',
     works: 'ピックアップ',
     collection: 'カテゴリ',
     profile: '私期について',
@@ -54,6 +69,7 @@ const copyByLocale: Record<Locale, {
     contact: 'コンタクト',
     open: 'ひらく',
     ekac: 'Ekac',
+    scrollCue: 'スクロール',
   },
 }
 
@@ -89,67 +105,82 @@ const socialLinks = [
   },
 ]
 
-const heroFeature = findArtwork('/images/snowcake47/game-fanart/onmyoji/HEVm68RbYAUmYxD.jpg')
-
-const selectedArtworks = [
-  '/images/snowcake47/original-oc/snow-portrait.jpg',
-  '/images/snowcake47/anime-fanart/sousou-no-frieren/red-dress-portrait.jpg',
-  '/images/snowcake47/game-fanart/honkai-star-rail/evernight.jpg',
-  '/images/snowcake47/game-fanart/duet-night-abyss/rebecca.jpg',
-  '/images/snowcake47/anime-fanart/vocaloid/racing-miku.jpg',
-  '/images/snowcake47/commercial-commission/wedding-blue.jpg',
-  '/images/snowcake47/original-oc/butterfly-portrait.jpg',
-  '/images/snowcake47/anime-fanart/code-geass/euphemia-good-night.jpg',
-].map(findArtwork)
-
-const categoryArtworkPath: Record<ArtworkCategoryId, string> = {
-  'game-fanart': '/images/snowcake47/game-fanart/magical-girl-witch-trials/black-red-portrait.jpg',
-  'anime-fanart': '/images/snowcake47/anime-fanart/code-geass/euphemia-good-night.jpg',
-  'original-oc': '/images/snowcake47/original-oc/butterfly-portrait.jpg',
-  'commercial-commission': '/images/snowcake47/commercial-commission/red-crown-portrait.jpg',
+interface HomeSlotPayload {
+  url: string
+  categoryId: string
+  seriesNameZh: string
+  seriesNameEn: string
+  seriesNameJa: string
+  titleZh: string
+  titleEn: string
+  titleJa: string
+  objectPosition: string | null
 }
 
-const categoryShowcases = computed(() => artworkCategories.map(category => ({
-  category,
-  artwork: findArtwork(categoryArtworkPath[category.id]),
-})))
+interface SlotRender {
+  src: string
+  category: ArtworkCategoryId
+  seriesLabel: string
+  objectPosition?: string
+}
 
-const ekacArtworks = [
-  '/images/snowcake47/original-oc/Ekac/Ekac-1.png',
-  '/images/snowcake47/original-oc/Ekac/Ekac-2.jpg',
-  '/images/snowcake47/original-oc/Ekac/Ekac-3.jpg',
-  '/images/snowcake47/original-oc/Ekac/Ekac-4.jpg',
-].map(findArtwork)
+const { data: layoutData } = await useFetch<{ slots: Record<string, HomeSlotPayload>; selected: HomeSlotPayload[] }>('/api/home/layout', {
+  default: () => ({ slots: {}, selected: [] }),
+})
 
-const heroTitleChars = 'Snowcake47'.split('')
-
-function findArtwork(src: string): Artwork {
-  const artwork = artworks.find(item => item.src === src)
-  if (!artwork) {
-    throw new Error(`Artwork not found: ${src}`)
+function pickByLocale(zh: string, en: string, ja: string): string {
+  if (locale === 'zh-CN') {
+    return zh || en
   }
-  return artwork
+  if (locale === 'ja') {
+    return ja || en
+  }
+  return en || zh
 }
 
-function seriesText(artwork: Artwork): string {
-  return seriesLabels[artwork.series][locale]
+function payloadToSlot(p: HomeSlotPayload): SlotRender {
+  return {
+    src: p.url,
+    category: p.categoryId as ArtworkCategoryId,
+    seriesLabel: pickByLocale(p.seriesNameZh, p.seriesNameEn, p.seriesNameJa),
+    objectPosition: p.objectPosition ?? undefined,
+  }
+}
+
+function resolveSlot(slotKey: string): SlotRender | null {
+  const override = layoutData.value?.slots?.[slotKey]
+  return override ? payloadToSlot(override) : null
 }
 
 function categoryText(id: ArtworkCategoryId): string {
   return artworkCategories.find(c => c.id === id)?.label[locale] ?? id
 }
 
-const cursor = reactive({ x: 0, y: 0 })
+const heroFeature = computed(() => resolveSlot('hero'))
+
+const selectedArtworks = computed(() =>
+  (layoutData.value?.selected ?? []).map(payloadToSlot),
+)
+
+const categoryShowcases = computed(() => artworkCategories
+  .map(category => ({ category, artwork: resolveSlot(`category.${category.id}`) }))
+  .filter((entry): entry is { category: typeof artworkCategories[number]; artwork: SlotRender } => !!entry.artwork),
+)
+
+const ekacArtworks = computed(() =>
+  Array.from({ length: 4 }, (_, idx) => resolveSlot(`ekac.${idx}`))
+    .filter((s): s is SlotRender => !!s),
+)
+
+const heroTitleChars = 'Snowcake47'.split('')
+
+const BRAND_AVATAR_URL = '/api/files/brand/avatar.jpg'
+
 const mounted = ref(false)
-const scrollY = ref(0)
+const navScrolled = ref(false)
 
-function handleMouseMove(event: MouseEvent) {
-  cursor.x = (event.clientX / window.innerWidth - 0.5) * 2
-  cursor.y = (event.clientY / window.innerHeight - 0.5) * 2
-}
-
-function handleScroll() {
-  scrollY.value = window.scrollY
+function handleNavScroll() {
+  navScrolled.value = window.scrollY > 4
 }
 
 function setupReveal() {
@@ -171,23 +202,17 @@ function setupReveal() {
 
 onMounted(() => {
   mounted.value = true
-  window.addEventListener('mousemove', handleMouseMove, { passive: true })
-  window.addEventListener('scroll', handleScroll, { passive: true })
+
+  handleNavScroll()
+  window.addEventListener('scroll', handleNavScroll, { passive: true })
 
   const observer = setupReveal()
 
   onBeforeUnmount(() => {
-    window.removeEventListener('mousemove', handleMouseMove)
-    window.removeEventListener('scroll', handleScroll)
+    window.removeEventListener('scroll', handleNavScroll)
     observer.disconnect()
   })
 })
-
-const heroParallax = computed(() => ({
-  marquee: `translate3d(${-scrollY.value * 0.4}px, 0, 0)`,
-  bg: `translate3d(${cursor.x * 8}px, ${cursor.y * 6}px, 0)`,
-  star: `translate3d(${cursor.x * 22}px, ${cursor.y * 16}px, 0)`,
-}))
 </script>
 
 <template>
@@ -196,10 +221,10 @@ const heroParallax = computed(() => ({
     <BackgroundOrnament />
     <div class="grain-overlay" aria-hidden="true" />
 
-    <header class="site-nav">
+    <header class="site-nav" :class="{ 'is-scrolled': navScrolled }">
       <NuxtLink href="/" class="brand">
         <span class="brand-mark">
-          <img src="/images/snowcake47/brand/avatar.jpg" alt="snowcake47">
+          <img :src="BRAND_AVATAR_URL" alt="snowcake47">
           <span class="brand-mark-ring" aria-hidden="true" />
         </span>
         <span class="brand-text">
@@ -211,7 +236,10 @@ const heroParallax = computed(() => ({
       <nav class="site-nav-links">
         <a href="#profile"><em>01</em>{{ copy.navProfile }}</a>
         <a href="#works"><em>02</em>{{ copy.navWorks }}</a>
-        <a href="#contact"><em>03</em>{{ copy.navContact }}</a>
+        <a href="#ekac"><em>03</em>{{ copy.navEkac }}</a>
+        <a href="#collection"><em>04</em>{{ copy.navCollection }}</a>
+        <a href="#contact"><em>05</em>{{ copy.navContact }}</a>
+        <NuxtLink to="/gallery" class="nav-archive"><em>06</em>{{ copy.navArchive }}<span class="nav-archive-arrow" aria-hidden="true">→</span></NuxtLink>
       </nav>
 
       <div class="locale-switcher">
@@ -233,10 +261,19 @@ const heroParallax = computed(() => ({
         <ThreeScene class="hero-three" />
       </ClientOnly>
 
+      <div class="hero-overlay">
+        <a href="#profile" class="hero-scroll-cue" :aria-label="copy.scrollCue">
+          <span>{{ copy.scrollCue }}</span>
+          <svg viewBox="0 0 18 32" aria-hidden="true">
+            <path d="M9 2v24M2 20l7 7 7-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+      </div>
+
       <div class="hero-marquee" aria-hidden="true">
-        <div class="hero-marquee-track" :style="{ transform: heroParallax.marquee }">
-          <span v-for="i in 4" :key="i">
-            <em>✟</em> ILLUSTRATION <em>✟</em> CHARACTER DESIGN <em>✟</em> SNOWCAKE47 <em>✟</em> 私期 <em>✟</em> SINCE 2017 <em>✟</em>
+        <div class="hero-marquee-track">
+          <span v-for="i in 12" :key="i">
+            <em>✟</em> ILLUSTRATION <em>✟</em> CHARACTER DESIGN <em>✟</em> SNOWCAKE47 <em>✟</em> 私期 <em>✟</em> SINCE 2017
           </span>
         </div>
       </div>
@@ -267,7 +304,7 @@ const heroParallax = computed(() => ({
       <div class="profile-grid">
         <div class="profile-portrait" data-reveal>
           <div class="profile-portrait-frame">
-            <img src="/images/snowcake47/brand/avatar.jpg" alt="snowcake47 avatar">
+            <img :src="BRAND_AVATAR_URL" alt="snowcake47 avatar">
           </div>
         </div>
 
@@ -292,7 +329,7 @@ const heroParallax = computed(() => ({
         </h2>
       </div>
 
-      <figure class="work-feature" data-reveal>
+      <figure v-if="heroFeature" class="work-feature" data-reveal>
         <svg class="work-feature-corner work-feature-corner-tl" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M0 14V0h14" fill="none" stroke="#16181f" stroke-width="1" />
           <circle cx="3.5" cy="3.5" r="1.4" fill="#8a1827" />
@@ -321,14 +358,12 @@ const heroParallax = computed(() => ({
         </header>
 
         <div class="work-feature-frame">
-          <span class="work-feature-tape work-feature-tape-tl" aria-hidden="true" />
-          <span class="work-feature-tape work-feature-tape-br" aria-hidden="true" />
-          <img :src="heroFeature.src" :alt="seriesText(heroFeature)" loading="lazy" decoding="async">
+          <img :src="heroFeature.src" :alt="heroFeature.seriesLabel" loading="lazy" decoding="async">
         </div>
 
         <figcaption class="work-feature-caption">
           <div class="work-feature-info">
-            <strong>{{ seriesText(heroFeature) }}</strong>
+            <strong>{{ heroFeature.seriesLabel }}</strong>
             <em>{{ categoryText(heroFeature.category) }}</em>
           </div>
           <span class="work-feature-flourish" aria-hidden="true">✦ ❅ ✦</span>
@@ -344,10 +379,10 @@ const heroParallax = computed(() => ({
           :style="{ '--reveal-delay': `${(index % 3) * 90}ms` }"
         >
           <div class="work-frame">
-            <img :src="artwork.src" :alt="seriesText(artwork)" loading="lazy" decoding="async">
+            <img :src="artwork.src" :alt="artwork.seriesLabel" loading="lazy" decoding="async">
           </div>
           <figcaption class="work-caption">
-            <strong>{{ seriesText(artwork) }}</strong>
+            <strong>{{ artwork.seriesLabel }}</strong>
             <em>{{ categoryText(artwork.category) }}</em>
           </figcaption>
         </figure>
@@ -365,7 +400,7 @@ const heroParallax = computed(() => ({
         </h2>
       </div>
 
-      <figure class="ekac-main" data-reveal>
+      <figure v-if="ekacArtworks[0]" class="ekac-main" data-reveal>
         <img :src="ekacArtworks[0].src" :alt="copy.ekac" loading="lazy" decoding="async">
       </figure>
 
@@ -374,12 +409,18 @@ const heroParallax = computed(() => ({
           v-for="artwork in ekacArtworks.slice(1)"
           :key="artwork.src"
         >
-          <img :src="artwork.src" :alt="copy.ekac" loading="lazy" decoding="async">
+          <img
+            :src="artwork.src"
+            :alt="copy.ekac"
+            loading="lazy"
+            decoding="async"
+            :style="{ objectPosition: artwork.objectPosition ?? '50% 22%' }"
+          >
         </figure>
       </div>
     </section>
 
-    <section class="categories">
+    <section id="collection" class="categories">
       <div class="section-head" data-reveal>
         <span class="section-num">04 / Collection</span>
         <h2 class="section-title">
@@ -399,7 +440,13 @@ const heroParallax = computed(() => ({
           :style="{ '--reveal-delay': `${idx * 90}ms` }"
         >
           <div class="category-media">
-            <img :src="item.artwork.src" :alt="seriesText(item.artwork)" loading="lazy" decoding="async">
+            <img
+              :src="item.artwork.src"
+              :alt="item.artwork.seriesLabel"
+              loading="lazy"
+              decoding="async"
+              :style="{ objectPosition: item.artwork.objectPosition ?? '50% 18%' }"
+            >
             <span class="category-glow" aria-hidden="true" />
           </div>
           <div class="category-meta">
@@ -469,12 +516,12 @@ const heroParallax = computed(() => ({
     radial-gradient(circle at 78% 96%, rgba(138, 24, 39, 0.06) 0%, transparent 48%),
     #f8f7f7;
   color: #16181f;
-  font-family: 'Shippori Mincho', 'Noto Serif JP', 'Hiragino Mincho ProN', 'Source Han Serif', serif;
+  font-family: var(--font-body);
 }
 
 .grain-overlay {
   position: fixed;
-  z-index: 1;
+  z-index: var(--z-grain);
   inset: 0;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   opacity: 0.5;
@@ -484,15 +531,46 @@ const heroParallax = computed(() => ({
 
 /* ───── Site nav ───── */
 .site-nav {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 50;
+  left: 0;
+  right: 0;
+  z-index: var(--z-nav);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.5rem;
-  padding: 1rem 1.6rem;
-  background: transparent;
+  gap: 1.2rem;
+  padding: 0.55rem 1.4rem;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.site-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(248, 247, 247, 0);
+  backdrop-filter: blur(0);
+  -webkit-backdrop-filter: blur(0);
+  border-bottom: 1px solid transparent;
+  transition:
+    background 0.3s ease,
+    backdrop-filter 0.3s ease,
+    -webkit-backdrop-filter 0.3s ease,
+    border-color 0.3s ease;
+  pointer-events: none;
+}
+
+.site-nav.is-scrolled::before {
+  background: rgba(248, 247, 247, 0.72);
+  backdrop-filter: blur(14px) saturate(1.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+  border-bottom-color: rgba(22, 24, 31, 0.06);
+}
+
+.site-nav > * {
+  pointer-events: auto;
 }
 
 .brand {
@@ -504,8 +582,8 @@ const heroParallax = computed(() => ({
 .brand-mark {
   position: relative;
   display: block;
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
 }
 
 .brand-mark img {
@@ -536,26 +614,26 @@ const heroParallax = computed(() => ({
 }
 
 .brand-text strong {
-  font-family: 'Shippori Mincho', 'Playfair Display', 'Noto Serif JP', serif;
-  font-size: 1.15rem;
+  font-family: var(--font-display);
+  font-size: 0.98rem;
   font-weight: 800;
   letter-spacing: 0.02em;
 }
 
 .brand-text small {
-  font-size: 0.7rem;
-  color: #6c7384;
+  font-size: 0.62rem;
+  color: var(--color-ink-soft);
   letter-spacing: 0.08em;
 }
 
 .site-nav-links {
   display: none;
-  gap: 1.4rem;
+  gap: 1.1rem;
   font-size: 0.82rem;
   font-weight: 600;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .site-nav-links { display: flex; }
 }
 
@@ -589,6 +667,18 @@ const heroParallax = computed(() => ({
 .site-nav-links a:hover { color: #16181f; }
 .site-nav-links a:hover::after { right: 0; }
 
+.site-nav-links .nav-archive .nav-archive-arrow {
+  margin-left: 0.25rem;
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-size: 0.86em;
+  color: #8a1827;
+  transition: transform 0.4s cubic-bezier(.2, .8, .2, 1);
+}
+
+.site-nav-links .nav-archive:hover .nav-archive-arrow {
+  transform: translateX(4px);
+}
+
 .locale-switcher {
   display: flex;
   gap: 0.35rem;
@@ -601,12 +691,12 @@ const heroParallax = computed(() => ({
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.45rem 0.78rem;
+  padding: 0.32rem 0.66rem;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   font-weight: 800;
   letter-spacing: 0.06em;
-  color: #16181f;
+  color: var(--color-ink);
   transition: all 0.3s ease;
 }
 
@@ -641,10 +731,64 @@ const heroParallax = computed(() => ({
   height: 100% !important;
 }
 
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.hero-scroll-cue {
+  position: absolute;
+  left: 50%;
+  bottom: 7.6rem;
+  transform: translateX(-50%);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.8rem;
+  pointer-events: auto;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  opacity: 0.85;
+  transition: opacity 0.3s ease;
+}
+
+.hero-scroll-cue:hover { opacity: 1; }
+
+.hero-scroll-cue svg {
+  width: 20px;
+  height: 32px;
+  animation: scrollCueBob 2.4s ease-in-out infinite;
+}
+
+@keyframes scrollCueBob {
+  0%, 100% { transform: translateY(0); opacity: 0.7; }
+  50% { transform: translateY(6px); opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  .hero-scroll-cue {
+    bottom: 6rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.34em;
+  }
+
+  .hero-scroll-cue svg {
+    width: 18px;
+    height: 28px;
+  }
+}
+
 /* ───── Intro section (below hero) ───── */
 .intro {
   position: relative;
-  z-index: 10;
+  z-index: var(--z-content);
   padding: 5rem 1.6rem 3rem;
 }
 
@@ -662,7 +806,7 @@ const heroParallax = computed(() => ({
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-family: 'Shippori Mincho', 'Cormorant Garamond', 'Playfair Display', 'Noto Serif JP', serif;
+  font-family: var(--font-display);
   font-weight: 300;
   font-size: clamp(2.8rem, 9vw, 7.6rem);
   line-height: 1;
@@ -702,7 +846,7 @@ const heroParallax = computed(() => ({
   align-items: center;
   justify-content: center;
   gap: 0.9em;
-  font-family: 'Shippori Mincho', 'Noto Serif JP', 'Cormorant Garamond', 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-size: 0.22em;
   margin-top: 0.6em;
   font-weight: 300;
@@ -738,26 +882,37 @@ const heroParallax = computed(() => ({
   border-block: 1px solid rgba(42, 37, 48, 0.08);
   background: rgba(238, 240, 243, 0.5);
   padding: 0.85rem 0;
+  /* Parallax transform comes in via inline style; keep this layer free of
+     other transforms so the inner track's animation isn't overridden. */
+  will-change: transform;
 }
 
 .hero-marquee-track {
   display: flex;
-  gap: 3rem;
+  width: max-content;
+  gap: 2rem;
   white-space: nowrap;
-  animation: marquee 38s linear infinite;
-  font-family: 'Shippori Mincho', 'Playfair Display', serif;
+  animation: marquee 32s linear infinite;
+  font-family: var(--font-display);
   font-weight: 800;
   font-size: 0.92rem;
   letter-spacing: 0.16em;
-  color: #16181f;
+  color: var(--color-ink);
+}
+
+.hero-marquee-track > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
 }
 
 .hero-marquee-track em {
   font-style: normal;
-  color: #6c7384;
+  color: var(--color-ink-soft);
 }
 
 @keyframes marquee {
+  from { transform: translate3d(0, 0, 0); }
   to { transform: translate3d(-50%, 0, 0); }
 }
 
@@ -780,18 +935,19 @@ const heroParallax = computed(() => ({
   color: #16181f;
 }
 
-.section-num::before {
+.section-num::before,
+.section-num::after {
   content: '';
   width: 14px;
   height: 1px;
-  background: #16181f;
+  background: var(--color-ink);
   opacity: 0.5;
 }
 
 .section-title {
   position: relative;
   display: inline-block;
-  font-family: 'Shippori Mincho', 'Playfair Display', 'Noto Serif JP', serif;
+  font-family: var(--font-display);
   font-size: clamp(2.4rem, 6vw, 4.6rem);
   font-weight: 600;
   line-height: 1;
@@ -829,7 +985,7 @@ const heroParallax = computed(() => ({
 /* ───── Works ───── */
 .works {
   position: relative;
-  z-index: 10;
+  z-index: var(--z-content);
   padding: 7rem 1.6rem 5rem;
 }
 
@@ -853,15 +1009,6 @@ const heroParallax = computed(() => ({
   position: absolute;
   inset: 10px;
   border: 1px solid rgba(22, 24, 31, 0.08);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.work-feature::after {
-  content: '';
-  position: absolute;
-  inset: 14px;
-  border: 1px dashed rgba(22, 24, 31, 0.06);
   pointer-events: none;
   z-index: 1;
 }
@@ -929,7 +1076,7 @@ const heroParallax = computed(() => ({
 
 .work-feature-counter {
   margin-left: auto;
-  font-family: 'Shippori Mincho', 'Cormorant Garamond', 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.95rem;
   font-weight: 500;
@@ -956,30 +1103,6 @@ const heroParallax = computed(() => ({
   object-fit: cover;
 }
 
-.work-feature-tape {
-  position: absolute;
-  z-index: 5;
-  width: 132px;
-  height: 26px;
-  background: rgba(40, 56, 92, 0.32);
-  border: 1px dashed rgba(42, 37, 48, 0.18);
-  pointer-events: none;
-  box-shadow: 0 4px 10px -4px rgba(22, 24, 31, 0.25);
-}
-
-.work-feature-tape-tl {
-  top: -12px;
-  left: -18px;
-  transform: rotate(-10deg);
-}
-
-.work-feature-tape-br {
-  bottom: -10px;
-  right: -14px;
-  transform: rotate(7deg);
-  background: rgba(138, 150, 168, 0.42);
-}
-
 .work-feature-caption {
   position: relative;
   z-index: 2;
@@ -994,7 +1117,7 @@ const heroParallax = computed(() => ({
 
 .work-feature-info strong {
   display: block;
-  font-family: 'Shippori Mincho', 'Cormorant Garamond', 'Playfair Display', 'Noto Serif JP', serif;
+  font-family: var(--font-display);
   font-size: 1.7rem;
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -1088,7 +1211,7 @@ const heroParallax = computed(() => ({
 /* ───── Ekac (OC spotlight) ───── */
 .ekac {
   position: relative;
-  z-index: 10;
+  z-index: var(--z-content);
   padding: 6rem 1.6rem;
 }
 
@@ -1160,7 +1283,6 @@ const heroParallax = computed(() => ({
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 50% 22%;
 }
 
 @media (max-width: 540px) {
@@ -1172,7 +1294,7 @@ const heroParallax = computed(() => ({
 /* ───── Categories ───── */
 .categories {
   position: relative;
-  z-index: 10;
+  z-index: var(--z-content);
   padding: 6rem 1.6rem;
   background:
     linear-gradient(180deg, transparent, rgba(238, 240, 243, 0.6), transparent),
@@ -1209,7 +1331,6 @@ const heroParallax = computed(() => ({
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 50% 18%;
   transition: transform 0.8s cubic-bezier(.2, .8, .2, 1);
 }
 
@@ -1238,7 +1359,7 @@ const heroParallax = computed(() => ({
   border-radius: 50%;
   background: #16181f;
   color: #fafafa;
-  font-family: 'Shippori Mincho', 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -1252,7 +1373,7 @@ const heroParallax = computed(() => ({
 }
 
 .category-meta h3 {
-  font-family: 'Shippori Mincho', 'Playfair Display', 'Noto Serif JP', serif;
+  font-family: var(--font-display);
   font-size: 1.3rem;
   font-weight: 800;
   margin: 0 0 0.4rem;
@@ -1268,7 +1389,7 @@ const heroParallax = computed(() => ({
 /* ───── Profile ───── */
 .profile {
   position: relative;
-  z-index: 10;
+  z-index: var(--z-content);
   padding: 6rem 1.6rem;
 }
 
@@ -1330,7 +1451,7 @@ const heroParallax = computed(() => ({
 /* ───── Contact ───── */
 .contact {
   position: relative;
-  z-index: 10;
+  z-index: var(--z-content);
   padding: 6rem 1.6rem 8rem;
   background:
     radial-gradient(circle at 80% 20%, rgba(77, 114, 176, 0.12), transparent 60%),
@@ -1395,7 +1516,7 @@ const heroParallax = computed(() => ({
 .contact-list a:hover > * { color: #fafafa !important; }
 
 .contact-num {
-  font-family: 'Shippori Mincho', 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-size: 0.86rem;
   font-weight: 800;
   font-style: italic;
@@ -1408,7 +1529,7 @@ const heroParallax = computed(() => ({
 }
 
 .contact-label {
-  font-family: 'Shippori Mincho', 'Playfair Display', 'Noto Serif JP', serif;
+  font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 900;
 }
@@ -1452,7 +1573,7 @@ const heroParallax = computed(() => ({
 /* ───── Footer ───── */
 .site-footer {
   position: relative;
-  z-index: 10;
+  z-index: var(--z-content);
   padding: 2rem 1.6rem 2.4rem;
   border-top: 1px dashed rgba(42, 37, 48, 0.18);
   display: flex;
@@ -1463,7 +1584,7 @@ const heroParallax = computed(() => ({
 }
 
 .site-footer-mark span {
-  font-family: 'Shippori Mincho', 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 900;
   letter-spacing: 0.04em;
