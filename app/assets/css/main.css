@@ -1,3 +1,22 @@
+:root {
+  /* Typography stacks — keep these in sync with [lang="..."] overrides in app.vue. */
+  --font-display: 'Shippori Mincho', 'Cormorant Garamond', 'Playfair Display', 'Noto Serif JP', 'Noto Serif SC', serif;
+  --font-body: 'Shippori Mincho', 'Noto Serif JP', 'Noto Serif SC', 'Hiragino Mincho ProN', 'Source Han Serif', serif;
+
+  /* Layered z-index so fixed decorative layers don't fight content. */
+  --z-bg-ornament: 1;
+  --z-grain: 2;
+  --z-content: 10;
+  --z-nav: 50;
+  --z-loading: 1000;
+
+  /* Brand palette */
+  --color-ink: #16181f;
+  --color-ink-soft: #6c7384;
+  --color-cinnabar: #8a1827;
+  --color-paper: #f8f7f7;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

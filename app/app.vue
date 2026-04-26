@@ -31,15 +31,12 @@ useHead({
 </template>
 
 <style>
-[lang="en"] {
-  font-family:  'Noto Sans JP', 'Inter', sans-serif;
-}
-
-[lang="ja"]  {
-  font-family:  'Noto Sans JP', 'Inter', sans-serif;
+[lang="en"],
+[lang="ja"] {
+  font-family: 'Shippori Mincho', 'Noto Serif JP', 'Noto Sans JP', 'Inter', serif;
 }
 
 [lang="zh-CN"] {
-  font-family: 'Noto Sans SC', 'Inter', sans-serif;
+  font-family: 'Shippori Mincho', 'Noto Serif SC', 'Noto Sans SC', 'Inter', serif;
 }
 </style>

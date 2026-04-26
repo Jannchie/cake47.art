@@ -9,6 +9,12 @@ const threeSceneRef = ref<HTMLDivElement | null>(null)
 const loading = ref(true)
 let disposeThreeScene: (() => void) | undefined
 
+const props = withDefaults(defineProps<{
+  decorative?: boolean
+}>(), {
+  decorative: false,
+})
+
 interface OrbitState {
   offset: number
   cardYaw: number
@@ -66,8 +72,7 @@ function loadTextureWithPromise(url: string) {
   })
 }
 
-async function loadImage(imgPath: string, scene: THREE.Scene, orbitState: OrbitState, delta = 0) {
-  const texture = await loadTextureWithPromise(imgPath)
+function placeArtwork(texture: THREE.Texture, scene: THREE.Scene, orbitState: OrbitState, delta = 0) {
   const width = texture.image.width
   const height = texture.image.height
 
@@ -78,14 +83,12 @@ async function loadImage(imgPath: string, scene: THREE.Scene, orbitState: OrbitS
   const plane = new THREE.Mesh(planeGeometry, [planeMaterial, new THREE.MeshBasicMaterial({ color: 0xFF_FF_FF })])
 
   const angleInRadians = THREE.MathUtils.degToRad(5)
-  // plane.rotation.y = angleInRadians * 3
   plane.rotation.x = -angleInRadians
   plane.rotation.z = angleInRadians
-  // 设定 plane 的坐标，为绕着 Z 轴一周的圆形， delta 0 和 1 位置相同，delta 0.5 位置在最后面
   plane.position.z = Math.cos(Math.PI * 2 * delta) * 10
   plane.position.x = Math.sin(Math.PI * 2 * delta) * 20
-  // texture.colorSpace = THREE.SRGBColorSpace
   scene.add(plane)
+
   function animate(time: number) {
     requestAnimationFrame(animate)
     const orbitProgress = delta + time / 60_000 + orbitState.offset
@@ -109,30 +112,44 @@ onMounted(async () => {
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(50, threeSceneRef.value.clientWidth / threeSceneRef.value.clientHeight, 0.1, 200)
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-  renderer.setClearColor(new THREE.Color(0xE5_E5_E5))
+  renderer.setClearColor(new THREE.Color(0xF3_F2_F3), 1)
   renderer.setSize(threeSceneRef.value.clientWidth, threeSceneRef.value.clientHeight)
-  renderer.domElement.style.cursor = 'grab'
+  renderer.domElement.style.cursor = props.decorative ? 'default' : 'grab'
   renderer.domElement.style.touchAction = 'pan-y'
+  renderer.domElement.style.pointerEvents = props.decorative ? 'none' : 'auto'
   threeSceneRef.value.append(renderer.domElement)
   const previousBodyTouchAction = document.body.style.touchAction
-  document.body.style.touchAction = 'pan-y'
+  if (!props.decorative) {
+    document.body.style.touchAction = 'pan-y'
+  }
   const orbitState = { offset: 0, cardYaw: 0 }
   const imgPathList = [
-    '/imgs/cake.af390a65.png',
-    '/imgs/FbfB5CXakAAEr4T.jpg',
-    '/imgs/miku.d66461fc.jpeg',
-    '/imgs/oc2.7bee0420.jpeg',
-    '/imgs/ななみ.c4dafa62.jpeg',
-    '/imgs/白銀つむぎ.3e70dc15.jpeg',
-    '/imgs/舞園さやか.a060f725.jpeg',
-    '/imgs/赤松楓.9d64b955.jpeg',
-
+    '/images/snowcake47/original-oc/Ekac/Ekac-1.png',
+    '/images/snowcake47/anime-fanart/vocaloid/racing-miku.jpg',
+    '/images/snowcake47/anime-fanart/vocaloid/hatsune-miku.jpg',
+    '/images/snowcake47/original-oc/Ekac/Ekac-2.jpg',
+    '/images/snowcake47/game-fanart/danganronpa/chiaki-nanami.jpg',
+    '/images/snowcake47/game-fanart/danganronpa/tsumugi-shirogane.jpg',
+    '/images/snowcake47/game-fanart/honkai-star-rail/Firefly.png',
+    '/images/snowcake47/game-fanart/honkai-star-rail/Hysilens.png',
+    '/images/snowcake47/game-fanart/honkai-star-rail/evernight.jpg',
+    '/images/snowcake47/anime-fanart/sousou-no-frieren/red-dress-portrait.jpg',
   ]
+
+  // Load every candidate texture in parallel, then keep only portrait ones (height > width).
+  const candidates = await Promise.all(imgPathList.map(async path => ({
+    path,
+    texture: await loadTextureWithPromise(path),
+  })))
+  const portraitTextures = candidates
+    .filter(({ texture }) => texture.image.height > texture.image.width)
+    .map(({ texture }) => texture)
+
   const n = 20
   for (let i = 0; i < n; i++) {
-    const imgPath = imgPathList[i % imgPathList.length]
-    if (imgPath) {
-      await loadImage(imgPath, scene, orbitState, i / n)
+    const texture = portraitTextures[i % portraitTextures.length]
+    if (texture) {
+      placeArtwork(texture, scene, orbitState, i / n)
     }
   }
 
@@ -181,6 +198,10 @@ onMounted(async () => {
   }
 
   function handlePointerDown(event: PointerEvent) {
+    if (props.decorative) {
+      return
+    }
+
     if (activePointerId !== null || (event.pointerType === 'mouse' && event.button !== 0) || isInteractiveTarget(event.target)) {
       return
     }
@@ -195,6 +216,10 @@ onMounted(async () => {
   }
 
   function handlePointerMove(event: PointerEvent) {
+    if (props.decorative) {
+      return
+    }
+
     if (!isDragging || event.pointerId !== activePointerId) {
       return
     }
@@ -211,6 +236,10 @@ onMounted(async () => {
   }
 
   function handlePointerEnd(event: PointerEvent) {
+    if (props.decorative) {
+      return
+    }
+
     if (event.pointerId !== activePointerId) {
       return
     }
@@ -222,6 +251,10 @@ onMounted(async () => {
   }
 
   function handleWindowBlur() {
+    if (props.decorative) {
+      return
+    }
+
     isDragging = false
     activePointerId = null
     renderer.domElement.style.cursor = 'grab'
@@ -230,11 +263,13 @@ onMounted(async () => {
 
   const pointerMoveOptions: AddEventListenerOptions = { passive: false }
 
-  window.addEventListener('pointerdown', handlePointerDown)
-  window.addEventListener('pointermove', handlePointerMove, pointerMoveOptions)
-  window.addEventListener('pointerup', handlePointerEnd)
-  window.addEventListener('pointercancel', handlePointerEnd)
-  window.addEventListener('blur', handleWindowBlur)
+  if (!props.decorative) {
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('pointermove', handlePointerMove, pointerMoveOptions)
+    window.addEventListener('pointerup', handlePointerEnd)
+    window.addEventListener('pointercancel', handlePointerEnd)
+    window.addEventListener('blur', handleWindowBlur)
+  }
 
   function animate(time = 0) {
     animationFrameId = requestAnimationFrame(animate)
@@ -282,23 +317,27 @@ onMounted(async () => {
   disposeThreeScene = () => {
     cancelAnimationFrame(animationFrameId)
     window.removeEventListener('resize', handleResize, false)
-    window.removeEventListener('pointerdown', handlePointerDown)
-    window.removeEventListener('pointermove', handlePointerMove)
-    window.removeEventListener('pointerup', handlePointerEnd)
-    window.removeEventListener('pointercancel', handlePointerEnd)
-    window.removeEventListener('blur', handleWindowBlur)
+    if (!props.decorative) {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerEnd)
+      window.removeEventListener('pointercancel', handlePointerEnd)
+      window.removeEventListener('blur', handleWindowBlur)
+    }
     document.body.style.cursor = ''
-    document.body.style.touchAction = previousBodyTouchAction
+    if (!props.decorative) {
+      document.body.style.touchAction = previousBodyTouchAction
+    }
     renderer.dispose()
   }
 })
 </script>
 
 <template>
-  <div class="absolute inset-0 z-0 h-screen w-full">
+  <div class="relative z-0 h-full w-full">
     <!-- Loading overlay -->
     <div
-      v-if="loading"
+      v-if="loading && !decorative"
       class="absolute z-30 h-full w-full flex items-center justify-center from-neutral-100 to-neutral-200 bg-gradient-to-br"
     >
       <div class="text-center">

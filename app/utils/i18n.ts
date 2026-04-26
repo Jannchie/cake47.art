@@ -12,12 +12,12 @@ const i18nData = {
   title: {
     'zh-CN': '私期的画室',
     'ja': '私期の画室',
-    'en': 'snowcake47\'s Illustration',
+    'en': 'snowcake47 Illustration',
   },
   description: {
-    'zh-CN': '欢迎来到私期的画室。',
-    'ja': '私期の画室へようこそ。',
-    'en': 'Welcome to snowcake47\'s Illustration.',
+    'zh-CN': 'snowcake47 / 私期的个人作品集，收录游戏同人、动漫同人、原创 OC 与商单委托作品。',
+    'ja': 'snowcake47 / 私期のポートフォリオ。ゲーム同人、アニメ同人、オリジナル OC、商業・依頼作品を掲載。',
+    'en': 'Portfolio for snowcake47, featuring game fanart, anime fanart, original characters, and commission samples.',
   },
   x: {
     'zh-CN': 'X',

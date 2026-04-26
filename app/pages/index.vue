@@ -4,7 +4,6 @@ definePageMeta({ middleware: ['i18n'] })
 
 <template>
   <div>
-    <ThreeScene />
     <NuxtPage />
   </div>
 </template>
