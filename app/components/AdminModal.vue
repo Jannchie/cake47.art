@@ -8,6 +8,8 @@ const props = withDefaults(defineProps<{
   title: '',
 })
 
+const { t } = useAdminI18n()
+
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   close: []
@@ -49,7 +51,7 @@ onBeforeUnmount(() => {
               {{ title }}
             </slot>
           </h3>
-          <button type="button" class="icon-btn" aria-label="关闭" @click="close">
+          <button type="button" class="icon-btn" :aria-label="t('close')" @click="close">
             <Icon name="lucide:x" />
           </button>
         </header>

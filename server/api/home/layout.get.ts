@@ -1,5 +1,5 @@
 import { CAROUSEL_PREFIX, SELECTED_PREFIX } from '~~/shared/home-slots'
-import { asc, eq, tables, useDrizzle } from '~~/server/utils/drizzle'
+import { and, asc, eq, tables, useDrizzle } from '~~/server/utils/drizzle'
 import { versionBlobUrl } from '~~/server/utils/blob-url'
 
 export default defineEventHandler(async () => {
@@ -12,7 +12,7 @@ export default defineEventHandler(async () => {
       url: tables.artworks.url,
       sizeBytes: tables.artworks.sizeBytes,
       categoryId: tables.series.categoryId,
-      seriesId: tables.artworks.seriesId,
+      seriesId: tables.series.id,
       seriesSlug: tables.series.slug,
       seriesNameZh: tables.series.nameZh,
       seriesNameEn: tables.series.nameEn,
@@ -27,7 +27,11 @@ export default defineEventHandler(async () => {
     })
     .from(tables.homeSlots)
     .innerJoin(tables.artworks, eq(tables.artworks.id, tables.homeSlots.artworkId))
-    .innerJoin(tables.series, eq(tables.series.id, tables.artworks.seriesId))
+    .innerJoin(tables.artworkSeriesLinks, and(
+      eq(tables.artworkSeriesLinks.artworkId, tables.artworks.id),
+      eq(tables.artworkSeriesLinks.isPrimary, true),
+    ))
+    .innerJoin(tables.series, eq(tables.series.id, tables.artworkSeriesLinks.seriesId))
     .orderBy(asc(tables.homeSlots.position))
     .all()
 

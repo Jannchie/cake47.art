@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TextTrace } from '@text-trace/vue'
 import { artworkCategories, type ArtworkCategoryId } from '~/data/artworks'
 import type { Locale } from '~/utils/useLocale'
 
@@ -43,26 +44,26 @@ const copyByLocale: Record<Locale, {
     navEkac: 'Ekac',
     navCollection: '创作方向',
     navArchive: '作品集',
-    brandSubtitle: 'snowcake47 ✦ 私期',
+    brandSubtitle: 'snowcake47 / 私期',
     works: '作品',
     collection: '创作方向',
-    profile: '关于私期',
-    profileBio: '插画师。兴趣是打卡各种美食，并在 Google Maps 留下评价。',
+    profile: '私期 / snowcake47',
+    profileBio: '插画师。兴趣是吃各种店，并在 Google Maps 上无情评分。',
     contact: '联络',
     open: '前往',
     ekac: 'Ekac',
     scrollCue: '向下浏览',
-    heroStudio: '私期的画室',
-    marqueeIllustration: '插画',
-    marqueeCharacterDesign: '角色设计',
+    heroStudio: '私期作品集',
+    marqueeIllustration: '角色插画',
+    marqueeCharacterDesign: '原创与同人',
     marqueeArtist: '私期',
-    marqueeSince: '2017 起',
+    marqueeSince: '精选存档',
     sectionProfile: '关于',
     sectionWorks: '作品',
     sectionEkac: 'Ekac',
     sectionCollection: '创作方向',
     sectionContact: '联络',
-    featured: '主推',
+    featured: '精选',
     footerCredit: 'snowcake47 / 私期',
   },
   en: {
@@ -72,26 +73,26 @@ const copyByLocale: Record<Locale, {
     navEkac: 'Ekac',
     navCollection: 'Collection',
     navArchive: 'Gallery',
-    brandSubtitle: 'snowcake47 ✦ Shiki',
+    brandSubtitle: 'snowcake47 / Shiki',
     works: 'Works',
     collection: 'Collection',
-    profile: 'About snowcake47',
-    profileBio: 'Illustrator. Spends free time hopping between restaurants and leaving Google Maps reviews.',
+    profile: 'Shiki / snowcake47',
+    profileBio: 'Illustrator. Eats through every kind of place, then scores them mercilessly on Google Maps.',
     contact: 'Contact',
     open: 'visit',
     ekac: 'Ekac',
     scrollCue: 'Scroll',
-    heroStudio: 'snowcake47 Studio',
-    marqueeIllustration: 'Illustration',
-    marqueeCharacterDesign: 'Character Design',
+    heroStudio: 'snowcake47 Archive',
+    marqueeIllustration: 'Character Illustration',
+    marqueeCharacterDesign: 'Original & Fan Works',
     marqueeArtist: 'Shiki',
-    marqueeSince: 'Since 2017',
+    marqueeSince: 'Selected archive',
     sectionProfile: 'Profile',
     sectionWorks: 'Works',
     sectionEkac: 'Ekac',
     sectionCollection: 'Collection',
     sectionContact: 'Contact',
-    featured: 'Featured',
+    featured: 'Selected',
     footerCredit: 'snowcake47 / Shiki',
   },
   ja: {
@@ -101,26 +102,26 @@ const copyByLocale: Record<Locale, {
     navEkac: 'Ekac',
     navCollection: 'カテゴリ',
     navArchive: '作品集',
-    brandSubtitle: 'snowcake47 ✦ 私期',
+    brandSubtitle: 'snowcake47 / 私期',
     works: '作品',
     collection: 'カテゴリ',
-    profile: '私期について',
-    profileBio: 'イラストレーター。趣味はあちこちのお店を巡り、Google マップにレビューを残すこと。',
+    profile: '私期 / snowcake47',
+    profileBio: 'イラストレーター。いろんな店を食べ歩き、Google マップで容赦なく採点します。',
     contact: 'コンタクト',
     open: 'ひらく',
     ekac: 'Ekac',
     scrollCue: 'スクロール',
-    heroStudio: '私期の画室',
-    marqueeIllustration: 'イラスト',
-    marqueeCharacterDesign: 'キャラクターデザイン',
+    heroStudio: 'snowcake47 Archive',
+    marqueeIllustration: 'キャラクターイラスト',
+    marqueeCharacterDesign: 'オリジナルとファンアート',
     marqueeArtist: '私期',
-    marqueeSince: '2017年から',
+    marqueeSince: 'セレクトアーカイブ',
     sectionProfile: 'プロフィール',
     sectionWorks: '作品',
     sectionEkac: 'Ekac',
     sectionCollection: 'カテゴリ',
     sectionContact: 'コンタクト',
-    featured: '注目作品',
+    featured: 'セレクト',
     footerCredit: 'snowcake47 / 私期',
   },
 }
@@ -224,15 +225,50 @@ const ekacArtworks = computed(() =>
     .filter((s): s is SlotRender => !!s),
 )
 
-const heroTitleChars = 'Snowcake47'.split('')
+type HeroTraceController = {
+  replay: () => Promise<void>
+}
+
+const heroTitleText = 'Snowcake47'
+const heroTitleGlyphStyles = [
+  {
+    at: [8, 9],
+    style: {
+      textColor: '#8a1827',
+      guideColor: '#8a1827',
+    },
+  },
+]
+const heroTitleTiming = {
+  guide: 0.08,
+  stroke: 0.3,
+  fill: 0.78,
+  erase: 1,
+}
 
 const BRAND_AVATAR_URL = '/api/files/brand/avatar.jpg'
 
 const mounted = ref(false)
 const navScrolled = ref(false)
+const prefersReducedMotion = ref(false)
+const heroTitleRevealed = ref(false)
+const heroTraceController = shallowRef<HeroTraceController | null>(null)
 let sectionScrollFrame: number | null = null
 let revealObserver: IntersectionObserver | null = null
 let previousScrollRestoration: ScrollRestoration | null = null
+
+function replayHeroTrace() {
+  if (!prefersReducedMotion.value) {
+    void heroTraceController.value?.replay()
+  }
+}
+
+function handleHeroTraceReady(controller: HeroTraceController) {
+  heroTraceController.value = controller
+  if (heroTitleRevealed.value) {
+    replayHeroTrace()
+  }
+}
 
 function handleNavScroll() {
   navScrolled.value = window.scrollY > 4
@@ -323,6 +359,10 @@ function setupReveal() {
     for (const entry of entries) {
       if (entry.isIntersecting) {
         entry.target.classList.add('is-revealed')
+        if (entry.target.matches('[data-trace-title]')) {
+          heroTitleRevealed.value = true
+          replayHeroTrace()
+        }
         observer.unobserve(entry.target)
       }
     }
@@ -336,6 +376,7 @@ function setupReveal() {
 
 onMounted(() => {
   mounted.value = true
+  prefersReducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   if ('scrollRestoration' in window.history) {
     previousScrollRestoration = window.history.scrollRestoration
@@ -428,7 +469,7 @@ onBeforeUnmount(() => {
       <div class="hero-marquee" aria-hidden="true">
         <div class="hero-marquee-track">
           <span v-for="i in 12" :key="i">
-            <em>✟</em> {{ copy.marqueeIllustration }} <em>✟</em> {{ copy.marqueeCharacterDesign }} <em>✟</em> SNOWCAKE47 <em>✟</em> {{ copy.marqueeArtist }} <em>✟</em> {{ copy.marqueeSince }}
+            {{ copy.marqueeIllustration }} <em>/</em> {{ copy.marqueeCharacterDesign }} <em>/</em> SNOWCAKE47 <em>/</em> {{ copy.marqueeArtist }} <em>/</em> {{ copy.marqueeSince }}
           </span>
         </div>
       </div>
@@ -436,15 +477,31 @@ onBeforeUnmount(() => {
 
     <section class="intro">
       <div class="intro-grid">
-        <h1 class="hero-title" data-reveal style="--reveal-delay: 80ms">
+        <h1 class="hero-title" data-reveal data-trace-title style="--reveal-delay: 80ms">
           <span class="hero-title-row">
-            <span
-              v-for="(char, i) in heroTitleChars"
-              :key="i"
-              class="hero-char"
-              :class="{ 'is-accent': i >= 8 }"
-              :style="{ animationDelay: `${0.2 + i * 0.06}s` }"
-            >{{ char }}</span>
+            <ClientOnly>
+              <TextTrace
+                v-if="!prefersReducedMotion"
+                class="hero-title-trace"
+                :text="heroTitleText"
+                font-key="garamond"
+                text-color="#16181f"
+                guide-color="#16181f"
+                :duration="1600"
+                :timing="heroTitleTiming"
+                :glyph-styles="heroTitleGlyphStyles"
+                :aria-label="heroTitleText"
+                @ready="handleHeroTraceReady"
+              />
+              <template #fallback>
+                <span class="hero-title-fallback" aria-hidden="true">
+                  Snowcake<span class="is-accent">47</span>
+                </span>
+              </template>
+            </ClientOnly>
+            <span v-if="prefersReducedMotion" class="hero-title-fallback" aria-hidden="true">
+              Snowcake<span class="is-accent">47</span>
+            </span>
           </span>
           <span class="hero-title-jp">
             <span class="hero-title-jp-deco" aria-hidden="true">◆</span>
@@ -506,7 +563,7 @@ onBeforeUnmount(() => {
 
         <header class="work-feature-meta">
           <span class="work-feature-tag">
-            <span class="work-feature-tag-mark">★</span>
+            <span class="work-feature-tag-mark">No.</span>
             {{ copy.featured }}
           </span>
           <span class="work-feature-divider" aria-hidden="true" />
@@ -523,7 +580,7 @@ onBeforeUnmount(() => {
             <strong>{{ heroFeature.seriesLabel }}</strong>
             <em>{{ categoryText(heroFeature.category) }}</em>
           </div>
-          <span class="work-feature-flourish" aria-hidden="true">✦ ❅ ✦</span>
+          <span class="work-feature-flourish" aria-hidden="true">cake47.art</span>
         </figcaption>
       </figure>
 
@@ -874,7 +931,8 @@ onBeforeUnmount(() => {
 .hero {
   position: relative;
   height: 100vh;
-  min-height: 580px;
+  height: 100svh;
+  min-height: 0;
   width: 100%;
   overflow: hidden;
   background:
@@ -899,7 +957,7 @@ onBeforeUnmount(() => {
 .hero-scroll-cue {
   position: absolute;
   left: 50%;
-  bottom: 7.6rem;
+  bottom: clamp(4.7rem, 8vh, 6.4rem);
   transform: translateX(-50%);
   display: inline-flex;
   flex-direction: column;
@@ -932,7 +990,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 640px) {
   .hero-scroll-cue {
-    bottom: 6rem;
+    bottom: 4.8rem;
     font-size: 0.7rem;
     letter-spacing: 0.34em;
   }
@@ -977,26 +1035,22 @@ onBeforeUnmount(() => {
 }
 
 .hero-title-row {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0.02em;
-  justify-content: center;
+  display: block;
+  width: min(92vw, 880px);
 }
 
-.hero-char {
-  display: inline-block;
+.hero-title-trace {
+  display: block;
+  width: 100%;
+}
+
+.hero-title-fallback {
+  display: block;
   color: #16181f;
-  opacity: 0;
-  transform: translateY(60%) rotate(8deg);
-  animation: charIn 1s cubic-bezier(.2, .8, .2, 1) forwards;
 }
 
-.hero-char.is-accent {
+.hero-title-fallback .is-accent {
   color: #8a1827;
-}
-
-@keyframes charIn {
-  to { opacity: 1; transform: translateY(0) rotate(0); }
 }
 
 .hero-title-jp {
@@ -1037,14 +1091,14 @@ onBeforeUnmount(() => {
 .hero-marquee {
   position: absolute;
   z-index: 6;
-  bottom: 4.5rem;
+  bottom: 0;
   left: 0;
   right: 0;
   overflow: hidden;
   pointer-events: none;
-  border-block: 1px solid rgba(42, 37, 48, 0.08);
-  background: rgba(238, 240, 243, 0.5);
-  padding: 0.85rem 0;
+  border-top: 1px solid rgba(42, 37, 48, 0.1);
+  background: rgba(248, 247, 247, 0.76);
+  padding: 0.76rem 0 calc(0.76rem + env(safe-area-inset-bottom));
   /* Parallax transform comes in via inline style; keep this layer free of
      other transforms so the inner track's animation isn't overridden. */
   will-change: transform;
@@ -1057,9 +1111,9 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   animation: marquee 32s linear infinite;
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 0.92rem;
-  letter-spacing: 0.16em;
+  font-weight: 700;
+  font-size: 0.84rem;
+  letter-spacing: 0.12em;
   color: var(--color-ink);
 }
 
@@ -1071,7 +1125,7 @@ onBeforeUnmount(() => {
 
 .hero-marquee-track em {
   font-style: normal;
-  color: var(--color-ink-soft);
+  color: rgba(22, 24, 31, 0.34);
 }
 
 @keyframes marquee {
@@ -1793,7 +1847,7 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 767px) {
-  .hero { min-height: 92vh; padding-bottom: 8rem; }
+  .hero { min-height: 0; padding-bottom: 0; }
   .hero-art { width: 88vw; right: -16vw; height: 64vh; opacity: 0.42; }
   .hero-floater-a { width: 92px; height: 92px; left: 4%; top: 14%; }
   .hero-floater-b { width: 84px; height: 100px; right: 4%; top: 6%; }
@@ -1814,7 +1868,7 @@ onBeforeUnmount(() => {
     transition: none !important;
   }
   [data-reveal] { opacity: 1 !important; transform: none !important; }
-  .hero-art, .hero-char, .hero-title-jp {
+  .hero-art, .hero-title-trace, .hero-title-fallback, .hero-title-jp {
     opacity: 1 !important;
     transform: none !important;
   }

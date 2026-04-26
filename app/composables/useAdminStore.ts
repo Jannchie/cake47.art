@@ -22,13 +22,28 @@ export interface SeriesItem {
   artworkCount: number
 }
 
-export interface ArtworkItem {
-  id: string
+export interface ArtworkSeriesEntry {
   seriesId: string
   seriesSlug: string
   seriesNameEn: string
   seriesNameZh: string
+  seriesNameJa: string
   categoryId: string
+  isPrimary: boolean
+  sortOrder: number
+}
+
+export interface ArtworkItem {
+  id: string
+  seriesIds: string[]
+  primarySeriesId: string
+  categoryIds: string[]
+  primaryCategoryId: string
+  primarySeriesSlug: string
+  primarySeriesNameEn: string
+  primarySeriesNameZh: string
+  primarySeriesNameJa: string
+  seriesEntries: ArtworkSeriesEntry[]
   titleEn: string
   titleZh: string
   titleJa: string
@@ -42,8 +57,6 @@ export interface ArtworkItem {
   mimeType: string
   sizeBytes: number
   objectPosition: string | null
-  featured: boolean
-  sortOrder: number
   createdAt: number
 }
 
@@ -66,6 +79,7 @@ export interface HomeSlotData {
 
 export function useAdminStore() {
   const adminApi = useAdminApi()
+  const { t, localizedCategoryLabel, localizedSeriesName } = useAdminI18n()
   const tokenInput = useState<string>('admin-token-input', () => '')
   const tokenError = useState<string>('admin-token-error', () => '')
   const authed = useState<boolean>('admin-authed', () => false)
@@ -99,7 +113,7 @@ export function useAdminStore() {
 
   async function login() {
     if (!tokenInput.value.trim()) {
-      tokenError.value = '请输入访问口令'
+      tokenError.value = t('tokenRequired')
       return
     }
     adminApi.token.value = tokenInput.value.trim()
@@ -110,7 +124,7 @@ export function useAdminStore() {
       tokenInput.value = ''
     }
     catch {
-      tokenError.value = '口令无效或服务未配置'
+      tokenError.value = t('tokenInvalid')
       adminApi.token.value = null
       authed.value = false
     }
@@ -167,11 +181,13 @@ export function useAdminStore() {
   }
 
   function categoryLabel(id: string): string {
-    return categories.value.find(c => c.id === id)?.labelEn ?? id
+    const category = categories.value.find(c => c.id === id)
+    return category ? localizedCategoryLabel(category) : id
   }
 
   function seriesNameById(id: string): string {
-    return seriesList.value.find(s => s.id === id)?.nameEn ?? id
+    const series = seriesList.value.find(s => s.id === id)
+    return series ? localizedSeriesName(series) : id
   }
 
   return {

@@ -3,6 +3,7 @@ definePageMeta({ layout: false })
 
 const store = useAdminStore()
 const { adminApi, seriesList, loadAll, bytesLabel, categoryLabel } = store
+const { t, localizedSeriesName } = useAdminI18n()
 
 interface UploadResult {
   key: string
@@ -83,7 +84,7 @@ function onFileChange(event: Event) {
 async function uploadOne(item: PendingItem) {
   if (!item.seriesId) {
     item.status = 'error'
-    item.errorMessage = '请选择系列'
+    item.errorMessage = t('selectSeriesRequired')
     return
   }
   item.status = 'uploading'
@@ -102,7 +103,8 @@ async function uploadOne(item: PendingItem) {
     await adminApi.fetch('/api/admin/artworks', {
       method: 'POST',
       body: {
-        seriesId: item.seriesId,
+        seriesIds: [item.seriesId],
+        primarySeriesId: item.seriesId,
         storageKey: result.key,
         url: result.url,
         mimeType: result.contentType,
@@ -119,7 +121,7 @@ async function uploadOne(item: PendingItem) {
   }
   catch (error: unknown) {
     item.status = 'error'
-    item.errorMessage = (error as { statusMessage?: string; message?: string }).statusMessage ?? (error as { message?: string }).message ?? '上传失败'
+    item.errorMessage = (error as { statusMessage?: string; message?: string }).statusMessage ?? (error as { message?: string }).message ?? t('uploadFailed')
   }
 }
 
@@ -154,8 +156,8 @@ function removePending(id: string) {
   <section class="page">
     <header class="page-head">
       <div>
-        <h2>上传作品</h2>
-        <p>拖拽图片到下方区域，或点击选择文件。每张可单独设定归属系列与多语言标题。</p>
+        <h2>{{ t('uploadTitle') }}</h2>
+        <p>{{ t('uploadDescription') }}</p>
       </div>
     </header>
 
@@ -177,21 +179,21 @@ function removePending(id: string) {
       >
       <Icon name="lucide:image-plus" class="dropzone-icon" />
       <p class="dropzone-title">
-        拖拽图片到此处
+        {{ t('dropzoneTitle') }}
       </p>
-      <small>or click to browse · jpg / png / webp / avif</small>
+      <small>{{ t('dropzoneHint') }}</small>
     </div>
 
     <div v-if="pending.length > 0" class="upload-block">
       <header class="upload-toolbar">
-        <span><strong>{{ pending.length }}</strong> 待上传</span>
+        <span><strong>{{ pending.length }}</strong> {{ t('pendingUpload') }}</span>
         <div class="upload-toolbar-actions">
           <button type="button" class="btn btn-ghost btn-sm" @click="clearSaved">
-            清理已保存
+            {{ t('clearSaved') }}
           </button>
           <button type="button" class="btn btn-primary btn-sm" @click="uploadAll">
             <Icon name="lucide:upload-cloud" />
-            <span>上传全部</span>
+            <span>{{ t('uploadAll') }}</span>
           </button>
         </div>
       </header>
@@ -201,29 +203,29 @@ function removePending(id: string) {
           <div class="upload-thumb">
             <img :src="item.preview" alt="">
             <span class="upload-progress" :style="{ width: `${item.progress}%` }" />
-            <span v-if="item.status === 'saved'" class="upload-pill is-ok">SAVED</span>
-            <span v-else-if="item.status === 'error'" class="upload-pill is-error">ERR</span>
+            <span v-if="item.status === 'saved'" class="upload-pill is-ok">{{ t('savedShort') }}</span>
+            <span v-else-if="item.status === 'error'" class="upload-pill is-error">{{ t('errorShort') }}</span>
             <span v-else-if="item.status === 'uploading'" class="upload-pill is-busy">···</span>
           </div>
           <div class="upload-fields">
             <label class="field">
-              <span>系列</span>
+              <span>{{ t('series') }}</span>
               <select v-model="item.seriesId">
                 <option v-for="s in seriesList" :key="s.id" :value="s.id">
-                  [{{ categoryLabel(s.categoryId) }}] {{ s.nameEn }}
+                  [{{ categoryLabel(s.categoryId) }}] {{ localizedSeriesName(s) }}
                 </option>
               </select>
             </label>
             <label class="field">
-              <span>Title (EN)</span>
+              <span>{{ t('titleEn') }}</span>
               <input v-model="item.titleEn" type="text">
             </label>
             <label class="field">
-              <span>標題 (JA)</span>
+              <span>{{ t('titleJa') }}</span>
               <input v-model="item.titleJa" type="text">
             </label>
             <label class="field">
-              <span>标题 (ZH)</span>
+              <span>{{ t('titleZh') }}</span>
               <input v-model="item.titleZh" type="text">
             </label>
           </div>
@@ -231,7 +233,7 @@ function removePending(id: string) {
             <small>{{ item.width }} × {{ item.height }}</small>
             <small>{{ bytesLabel(item.file.size) }}</small>
             <small v-if="item.errorMessage" class="upload-meta-error">{{ item.errorMessage }}</small>
-            <button type="button" class="icon-btn" :title="'移除'" @click="removePending(item.id)">
+            <button type="button" class="icon-btn" :title="t('commonRemove')" @click="removePending(item.id)">
               <Icon name="lucide:x" />
             </button>
           </div>

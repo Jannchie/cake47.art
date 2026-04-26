@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 export const categories = sqliteTable('categories', {
   id: text('id').primaryKey(),
@@ -37,9 +37,6 @@ export const series = sqliteTable('series', {
 
 export const artworks = sqliteTable('artworks', {
   id: text('id').primaryKey(),
-  seriesId: text('series_id')
-    .notNull()
-    .references(() => series.id, { onDelete: 'cascade' }),
   titleZh: text('title_zh').notNull().default(''),
   titleEn: text('title_en').notNull().default(''),
   titleJa: text('title_ja').notNull().default(''),
@@ -53,12 +50,33 @@ export const artworks = sqliteTable('artworks', {
   height: integer('height').notNull().default(0),
   sizeBytes: integer('size_bytes').notNull().default(0),
   objectPosition: text('object_position'),
-  featured: integer('featured', { mode: 'boolean' }).notNull().default(false),
-  sortOrder: integer('sort_order').notNull().default(0),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()
     .default(sql`(unixepoch() * 1000)`),
 })
+
+export const artworkSeriesLinks = sqliteTable(
+  'artwork_series_links',
+  {
+    artworkId: text('artwork_id')
+      .notNull()
+      .references(() => artworks.id, { onDelete: 'cascade' }),
+    seriesId: text('series_id')
+      .notNull()
+      .references(() => series.id, { onDelete: 'cascade' }),
+    isPrimary: integer('is_primary', { mode: 'boolean' }).notNull().default(false),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  table => ({
+    pk: primaryKey({ columns: [table.artworkId, table.seriesId] }),
+    primaryUnique: uniqueIndex('artwork_series_links_primary_unique')
+      .on(table.artworkId)
+      .where(sql`${table.isPrimary} = 1`),
+  }),
+)
 
 export const homeSlots = sqliteTable('home_slots', {
   slotKey: text('slot_key').primaryKey(),
@@ -74,4 +92,5 @@ export const homeSlots = sqliteTable('home_slots', {
 export type CategoryRow = typeof categories.$inferSelect
 export type SeriesRow = typeof series.$inferSelect
 export type ArtworkRow = typeof artworks.$inferSelect
+export type ArtworkSeriesLinkRow = typeof artworkSeriesLinks.$inferSelect
 export type HomeSlotRow = typeof homeSlots.$inferSelect

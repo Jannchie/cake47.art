@@ -1,6 +1,6 @@
 import { CAROUSEL_PREFIX, SELECTED_PREFIX } from '~~/shared/home-slots'
 import { assertAdmin } from '~~/server/utils/auth'
-import { asc, eq, tables, useDrizzle } from '~~/server/utils/drizzle'
+import { and, asc, eq, tables, useDrizzle } from '~~/server/utils/drizzle'
 
 export default defineEventHandler(async (event) => {
   assertAdmin(event)
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
       artworkId: tables.artworks.id,
       url: tables.artworks.url,
       categoryId: tables.series.categoryId,
-      seriesId: tables.artworks.seriesId,
+      seriesId: tables.series.id,
       seriesSlug: tables.series.slug,
       seriesNameZh: tables.series.nameZh,
       seriesNameEn: tables.series.nameEn,
@@ -28,7 +28,11 @@ export default defineEventHandler(async (event) => {
     })
     .from(tables.homeSlots)
     .innerJoin(tables.artworks, eq(tables.artworks.id, tables.homeSlots.artworkId))
-    .innerJoin(tables.series, eq(tables.series.id, tables.artworks.seriesId))
+    .innerJoin(tables.artworkSeriesLinks, and(
+      eq(tables.artworkSeriesLinks.artworkId, tables.artworks.id),
+      eq(tables.artworkSeriesLinks.isPrimary, true),
+    ))
+    .innerJoin(tables.series, eq(tables.series.id, tables.artworkSeriesLinks.seriesId))
     .orderBy(asc(tables.homeSlots.position))
     .all()
 

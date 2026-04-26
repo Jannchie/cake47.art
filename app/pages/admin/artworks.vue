@@ -3,16 +3,22 @@ definePageMeta({ layout: false })
 
 const store = useAdminStore()
 const { adminApi, categories, seriesList, artworks, loadAll, bytesLabel, categoryLabel, seriesNameById } = store
+const {
+  t,
+  localizedArtworkTitle,
+  localizedCategoryLabel,
+  localizedSeriesName,
+} = useAdminI18n()
 
 const filterSeries = ref<string>('')
 const filterCategory = ref<string>('')
 
 const filteredArtworks = computed(() => {
   return artworks.value.filter((a) => {
-    if (filterSeries.value && a.seriesId !== filterSeries.value) {
+    if (filterSeries.value && !a.seriesIds.includes(filterSeries.value)) {
       return false
     }
-    if (filterCategory.value && a.categoryId !== filterCategory.value) {
+    if (filterCategory.value && !a.categoryIds.includes(filterCategory.value)) {
       return false
     }
     return true
@@ -22,7 +28,7 @@ const filteredArtworks = computed(() => {
 const groupedArtworks = computed(() => {
   return categories.value
     .map((cat) => {
-      const catItems = filteredArtworks.value.filter(a => a.categoryId === cat.id)
+      const catItems = filteredArtworks.value.filter(a => a.categoryIds.includes(cat.id))
       if (catItems.length === 0) {
         return null
       }
@@ -30,11 +36,14 @@ const groupedArtworks = computed(() => {
       const seriesGroups = seriesInCat
         .map(series => ({
           series,
-          items: catItems.filter(a => a.seriesId === series.id),
+          items: catItems.filter(a => a.seriesIds.includes(series.id)),
         }))
         .filter(g => g.items.length > 0)
       const knownSeriesIds = new Set(seriesInCat.map(s => s.id))
-      const orphanItems = catItems.filter(a => !knownSeriesIds.has(a.seriesId))
+      const orphanItems = catItems.filter(a =>
+        !a.seriesIds.some(id => knownSeriesIds.has(id))
+        && a.primaryCategoryId === cat.id,
+      )
       return {
         category: cat,
         items: catItems,
@@ -51,7 +60,7 @@ function clearFilters() {
 }
 
 async function deleteArtwork(item: typeof artworks.value[number]) {
-  if (!confirm(`确认删除作品「${item.titleEn || item.seriesNameEn}」？`)) {
+  if (!confirm(t('confirmDeleteArtwork', { name: localizedArtworkTitle(item, localizedSeriesName(item)) }))) {
     return
   }
   await adminApi.fetch(`/api/admin/artworks/${item.id}`, { method: 'DELETE' })
@@ -71,7 +80,8 @@ const submittingEdit = ref(false)
 const editError = ref<string>('')
 
 const editForm = reactive({
-  seriesId: '',
+  seriesIds: [] as string[],
+  primarySeriesId: '',
   titleEn: '',
   titleZh: '',
   titleJa: '',
@@ -79,10 +89,34 @@ const editForm = reactive({
   descriptionZh: '',
   descriptionJa: '',
   objectPosition: '',
-  featured: false,
   sortOrder: 0,
   setAsCover: false,
 })
+
+const editSeriesByCategory = computed(() => {
+  return categories.value
+    .map(cat => ({
+      category: cat,
+      series: seriesList.value.filter(s => s.categoryId === cat.id),
+    }))
+    .filter(g => g.series.length > 0)
+})
+
+function toggleSeriesInForm(seriesId: string) {
+  const idx = editForm.seriesIds.indexOf(seriesId)
+  if (idx === -1) {
+    editForm.seriesIds.push(seriesId)
+    if (!editForm.primarySeriesId) {
+      editForm.primarySeriesId = seriesId
+    }
+  }
+  else {
+    editForm.seriesIds.splice(idx, 1)
+    if (editForm.primarySeriesId === seriesId) {
+      editForm.primarySeriesId = editForm.seriesIds[0] ?? ''
+    }
+  }
+}
 
 const replaceFileInput = ref<HTMLInputElement | null>(null)
 const replacePending = ref<{ file: File; preview: string; width: number; height: number } | null>(null)
@@ -113,7 +147,8 @@ function openEdit(item: typeof artworks.value[number]) {
     sizeBytes: item.sizeBytes,
     mimeType: item.mimeType,
   }
-  editForm.seriesId = item.seriesId
+  editForm.seriesIds = [...item.seriesIds]
+  editForm.primarySeriesId = item.primarySeriesId
   editForm.titleEn = item.titleEn
   editForm.titleZh = item.titleZh
   editForm.titleJa = item.titleJa
@@ -121,8 +156,8 @@ function openEdit(item: typeof artworks.value[number]) {
   editForm.descriptionZh = item.descriptionZh
   editForm.descriptionJa = item.descriptionJa
   editForm.objectPosition = item.objectPosition ?? ''
-  editForm.featured = item.featured
-  editForm.sortOrder = item.sortOrder
+  const primaryEntry = item.seriesEntries.find(e => e.isPrimary)
+  editForm.sortOrder = primaryEntry?.sortOrder ?? 0
   editForm.setAsCover = false
   clearReplacePending()
   editError.value = ''
@@ -143,12 +178,12 @@ async function onPickReplaceFile(event: Event) {
     return
   }
   if (!file.type.startsWith('image/')) {
-    editError.value = '只能上传图片'
+    editError.value = t('imageOnly')
     return
   }
   const dims = await readImageDimensions(file)
   if (dims.width === 0 || dims.height === 0) {
-    editError.value = '无法读取图片尺寸'
+    editError.value = t('imageUnreadable')
     return
   }
   clearReplacePending()
@@ -162,6 +197,14 @@ async function onPickReplaceFile(event: Event) {
 
 async function submitEdit() {
   if (!editingId.value) {
+    return
+  }
+  if (editForm.seriesIds.length === 0) {
+    editError.value = t('atLeastOneSeries')
+    return
+  }
+  if (!editForm.seriesIds.includes(editForm.primarySeriesId)) {
+    editError.value = t('primaryMustBeSelected')
     return
   }
   submittingEdit.value = true
@@ -183,7 +226,8 @@ async function submitEdit() {
     await adminApi.fetch(`/api/admin/artworks/${editingId.value}`, {
       method: 'PATCH',
       body: {
-        seriesId: editForm.seriesId,
+        seriesIds: editForm.seriesIds,
+        primarySeriesId: editForm.primarySeriesId,
         titleEn: editForm.titleEn,
         titleZh: editForm.titleZh,
         titleJa: editForm.titleJa,
@@ -191,7 +235,6 @@ async function submitEdit() {
         descriptionZh: editForm.descriptionZh,
         descriptionJa: editForm.descriptionJa,
         objectPosition: editForm.objectPosition.trim() === '' ? null : editForm.objectPosition.trim(),
-        featured: editForm.featured,
         sortOrder: editForm.sortOrder,
         setAsCover: editForm.setAsCover,
       },
@@ -203,7 +246,7 @@ async function submitEdit() {
   catch (error: unknown) {
     editError.value = (error as { statusMessage?: string; message?: string }).statusMessage
       ?? (error as { message?: string }).message
-      ?? '保存失败'
+      ?? t('saveFailed')
   }
   finally {
     submittingEdit.value = false
@@ -217,35 +260,35 @@ async function submitEdit() {
   <section class="page">
     <header class="page-head">
       <div>
-        <h2>作品</h2>
-        <p>{{ artworks.length }} 件 · 编辑元数据、替换图片或删除。</p>
+        <h2>{{ t('artworksTitle') }}</h2>
+        <p>{{ t('artworksDescription', { count: artworks.length }) }}</p>
       </div>
     </header>
 
     <div class="toolbar">
       <label class="field">
-        <span>分类</span>
+        <span>{{ t('category') }}</span>
         <select v-model="filterCategory">
           <option value="">
-            全部分类
+            {{ t('allCategories') }}
           </option>
           <option v-for="c in categories" :key="c.id" :value="c.id">
-            {{ c.labelEn }}
+            {{ localizedCategoryLabel(c) }}
           </option>
         </select>
       </label>
       <label class="field">
-        <span>系列</span>
+        <span>{{ t('series') }}</span>
         <select v-model="filterSeries">
           <option value="">
-            全部系列
+            {{ t('allSeries') }}
           </option>
           <option
             v-for="s in seriesList.filter(x => !filterCategory || x.categoryId === filterCategory)"
             :key="s.id"
             :value="s.id"
           >
-            [{{ categoryLabel(s.categoryId) }}] {{ s.nameEn }}
+            [{{ categoryLabel(s.categoryId) }}] {{ localizedSeriesName(s) }}
           </option>
         </select>
       </label>
@@ -256,17 +299,17 @@ async function submitEdit() {
         @click="clearFilters"
       >
         <Icon name="lucide:x" />
-        <span>清除筛选</span>
+        <span>{{ t('clearFilters') }}</span>
       </button>
       <span class="toolbar-count">
         <strong>{{ filteredArtworks.length }}</strong>
-        <small>filtered</small>
+        <small>{{ t('filtered') }}</small>
       </span>
     </div>
 
     <div v-if="filteredArtworks.length === 0" class="empty">
       <Icon name="lucide:inbox" />
-      <p>暂无作品。前往 Upload 上传。</p>
+      <p>{{ t('noArtworks') }}</p>
     </div>
 
     <div v-else class="artwork-stack">
@@ -280,12 +323,12 @@ async function submitEdit() {
             <Icon :name="group.category.icon" />
           </span>
           <div class="artwork-section-title">
-            <strong>{{ group.category.labelEn }}</strong>
-            <small>{{ group.category.labelZh }} · {{ group.category.labelJa }}</small>
+            <strong>{{ localizedCategoryLabel(group.category) }}</strong>
+            <small>{{ group.category.id }}</small>
           </div>
           <span class="artwork-section-count">
             <strong>{{ group.items.length }}</strong>
-            <small>artworks</small>
+            <small>{{ t('artworksUnit') }}</small>
           </span>
         </header>
         <div class="artwork-subsections">
@@ -296,34 +339,47 @@ async function submitEdit() {
           >
             <header class="artwork-subsection-head">
               <div class="artwork-subsection-title">
-                <strong>{{ sg.series.nameEn }}</strong>
-                <small>{{ sg.series.nameZh }} · {{ sg.series.nameJa }}</small>
+                <strong>{{ localizedSeriesName(sg.series) }}</strong>
+                <small>{{ sg.series.slug }}</small>
               </div>
               <span class="artwork-subsection-count">
                 <strong>{{ sg.items.length }}</strong>
-                <small>{{ sg.items.length > 1 ? 'works' : 'work' }}</small>
+                <small>{{ sg.items.length > 1 ? t('worksUnit') : t('workUnit') }}</small>
               </span>
             </header>
             <ul class="artworks-grid">
               <li
                 v-for="item in sg.items"
-                :key="item.id"
+                :key="`${sg.series.id}-${item.id}`"
                 class="artwork-card"
+                :class="{ 'is-shadow': item.primarySeriesId !== sg.series.id }"
               >
                 <div class="artwork-thumb">
-                  <img :src="item.url" :alt="item.titleEn || item.seriesNameEn" loading="lazy">
+                  <img :src="item.url" :alt="localizedArtworkTitle(item, localizedSeriesName(item))" loading="lazy">
                   <div class="artwork-overlay">
-                    <button type="button" class="overlay-btn" title="编辑" @click="openEdit(item)">
+                    <button type="button" class="overlay-btn" :title="t('commonEdit')" @click="openEdit(item)">
                       <Icon name="lucide:edit-3" />
                     </button>
-                    <button type="button" class="overlay-btn is-danger" title="删除" @click="deleteArtwork(item)">
+                    <button type="button" class="overlay-btn is-danger" :title="t('commonDelete')" @click="deleteArtwork(item)">
                       <Icon name="lucide:trash" />
                     </button>
                   </div>
-                  <span v-if="item.featured" class="artwork-badge">★</span>
+                  <span
+                    v-if="item.seriesIds.length > 1"
+                    class="artwork-badge artwork-multi"
+                    :title="t('multiSeriesTitle', { count: item.seriesIds.length })"
+                  >
+                    <Icon name="lucide:layers" />
+                    <em>{{ item.seriesIds.length }}</em>
+                  </span>
+                  <span
+                    v-if="item.primarySeriesId !== sg.series.id"
+                    class="artwork-secondary-flag"
+                    :title="t('primarySeriesTitle', { name: localizedSeriesName(item) })"
+                  >{{ t('secondary') }}</span>
                 </div>
                 <div class="artwork-info">
-                  <strong>{{ item.titleEn || sg.series.nameEn }}</strong>
+                  <strong>{{ localizedArtworkTitle(item, localizedSeriesName(sg.series)) }}</strong>
                   <span class="artwork-tags">
                     <em class="tag">{{ item.width }}×{{ item.height }}</em>
                     <em class="tag">{{ bytesLabel(item.sizeBytes) }}</em>
@@ -336,12 +392,12 @@ async function submitEdit() {
           <section v-if="group.orphanItems.length" class="artwork-subsection is-orphan">
             <header class="artwork-subsection-head">
               <div class="artwork-subsection-title">
-                <strong>未归类</strong>
-                <small>orphan · 系列已删除</small>
+                <strong>{{ t('orphan') }}</strong>
+                <small>{{ t('orphanHint') }}</small>
               </div>
               <span class="artwork-subsection-count">
                 <strong>{{ group.orphanItems.length }}</strong>
-                <small>{{ group.orphanItems.length > 1 ? 'works' : 'work' }}</small>
+                <small>{{ group.orphanItems.length > 1 ? t('worksUnit') : t('workUnit') }}</small>
               </span>
             </header>
             <ul class="artworks-grid">
@@ -351,20 +407,19 @@ async function submitEdit() {
                 class="artwork-card"
               >
                 <div class="artwork-thumb">
-                  <img :src="item.url" :alt="item.titleEn || item.seriesNameEn" loading="lazy">
+                  <img :src="item.url" :alt="localizedArtworkTitle(item, localizedSeriesName(item))" loading="lazy">
                   <div class="artwork-overlay">
-                    <button type="button" class="overlay-btn" title="编辑" @click="openEdit(item)">
+                    <button type="button" class="overlay-btn" :title="t('commonEdit')" @click="openEdit(item)">
                       <Icon name="lucide:edit-3" />
                     </button>
-                    <button type="button" class="overlay-btn is-danger" title="删除" @click="deleteArtwork(item)">
+                    <button type="button" class="overlay-btn is-danger" :title="t('commonDelete')" @click="deleteArtwork(item)">
                       <Icon name="lucide:trash" />
                     </button>
                   </div>
-                  <span v-if="item.featured" class="artwork-badge">★</span>
                 </div>
                 <div class="artwork-info">
-                  <strong>{{ item.titleEn || item.seriesNameEn }}</strong>
-                  <small>{{ seriesNameById(item.seriesId) }}</small>
+                  <strong>{{ localizedArtworkTitle(item, localizedSeriesName(item)) }}</strong>
+                  <small>{{ seriesNameById(item.primarySeriesId) }}</small>
                   <span class="artwork-tags">
                     <em class="tag">{{ item.width }}×{{ item.height }}</em>
                     <em class="tag">{{ bytesLabel(item.sizeBytes) }}</em>
@@ -377,17 +432,17 @@ async function submitEdit() {
       </article>
     </div>
 
-    <AdminModal v-model="showEdit" title="编辑作品" size="wide" @close="closeEdit">
+    <AdminModal v-model="showEdit" :title="t('editArtwork')" size="wide" @close="closeEdit">
       <form class="modal-form" @submit.prevent="submitEdit">
         <div class="edit-grid">
           <div class="edit-image">
             <div class="edit-image-frame">
-              <img v-if="replacePending" :src="replacePending.preview" alt="新图预览">
-              <img v-else :src="editingUrl" alt="当前图片">
+              <img v-if="replacePending" :src="replacePending.preview" :alt="t('newImagePreview')">
+              <img v-else :src="editingUrl" :alt="t('currentImage')">
             </div>
             <div class="edit-image-meta">
               <small v-if="replacePending">
-                新图 · {{ replacePending.width }}×{{ replacePending.height }} · {{ bytesLabel(replacePending.file.size) }}
+                {{ t('newImage') }} · {{ replacePending.width }}×{{ replacePending.height }} · {{ bytesLabel(replacePending.file.size) }}
               </small>
               <small v-else>
                 {{ editingMeta.width }}×{{ editingMeta.height }} · {{ bytesLabel(editingMeta.sizeBytes) }} · {{ editingMeta.mimeType }}
@@ -403,7 +458,7 @@ async function submitEdit() {
               >
               <button type="button" class="btn btn-ghost btn-sm" @click="replaceFileInput?.click()">
                 <Icon name="lucide:replace" />
-                <span>选择新图</span>
+                <span>{{ t('chooseNewImage') }}</span>
               </button>
               <button
                 v-if="replacePending"
@@ -412,47 +467,79 @@ async function submitEdit() {
                 @click="clearReplacePending"
               >
                 <Icon name="lucide:x" />
-                <span>取消替换</span>
+                <span>{{ t('cancelReplace') }}</span>
               </button>
             </div>
           </div>
 
           <div class="edit-fields">
-            <label class="field">
-              <span>系列</span>
-              <select v-model="editForm.seriesId" required>
-                <option v-for="s in seriesList" :key="s.id" :value="s.id">
-                  [{{ categoryLabel(s.categoryId) }}] {{ s.nameEn }}
-                </option>
-              </select>
-            </label>
+            <div class="field">
+              <span>{{ t('seriesPickerLabel') }}</span>
+              <div class="series-picker">
+                <div
+                  v-for="group in editSeriesByCategory"
+                  :key="group.category.id"
+                  class="series-picker-group"
+                >
+                  <span class="series-picker-cat">{{ localizedCategoryLabel(group.category) }}</span>
+                  <div class="series-picker-row">
+                    <div
+                      v-for="s in group.series"
+                      :key="s.id"
+                      class="series-chip"
+                      role="button"
+                      tabindex="0"
+                      :class="{
+                        'is-on': editForm.seriesIds.includes(s.id),
+                        'is-primary': editForm.primarySeriesId === s.id,
+                      }"
+                      @click="toggleSeriesInForm(s.id)"
+                      @keydown.enter.prevent="toggleSeriesInForm(s.id)"
+                      @keydown.space.prevent="toggleSeriesInForm(s.id)"
+                    >
+                      <span class="series-chip-name">{{ localizedSeriesName(s) }}</span>
+                      <button
+                        v-if="editForm.seriesIds.includes(s.id)"
+                        type="button"
+                        class="series-chip-star"
+                        :class="{ 'is-primary': editForm.primarySeriesId === s.id }"
+                        :title="editForm.primarySeriesId === s.id ? t('primarySeries') : t('setPrimary')"
+                        @click.stop="editForm.primarySeriesId = s.id"
+                      >
+                        <Icon :name="editForm.primarySeriesId === s.id ? 'lucide:star' : 'lucide:star-off'" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div class="form-row-3">
               <label class="field">
-                <span>Title (EN)</span>
+                <span>{{ t('titleEn') }}</span>
                 <input v-model="editForm.titleEn" type="text">
               </label>
               <label class="field">
-                <span>标题 (ZH)</span>
+                <span>{{ t('titleZh') }}</span>
                 <input v-model="editForm.titleZh" type="text">
               </label>
               <label class="field">
-                <span>標題 (JA)</span>
+                <span>{{ t('titleJa') }}</span>
                 <input v-model="editForm.titleJa" type="text">
               </label>
             </div>
 
             <div class="form-row-3">
               <label class="field">
-                <span>Description (EN)</span>
+                <span>{{ t('descriptionEn') }}</span>
                 <textarea v-model="editForm.descriptionEn" rows="2" />
               </label>
               <label class="field">
-                <span>描述 (ZH)</span>
+                <span>{{ t('descriptionZh') }}</span>
                 <textarea v-model="editForm.descriptionZh" rows="2" />
               </label>
               <label class="field">
-                <span>説明 (JA)</span>
+                <span>{{ t('descriptionJa') }}</span>
                 <textarea v-model="editForm.descriptionJa" rows="2" />
               </label>
             </div>
@@ -463,19 +550,15 @@ async function submitEdit() {
                 <input v-model="editForm.objectPosition" type="text" placeholder="50% 30%">
               </label>
               <label class="field">
-                <span>排序</span>
+                <span>{{ t('order') }}</span>
                 <input v-model.number="editForm.sortOrder" type="number">
               </label>
               <label class="field field-checks">
-                <span>选项</span>
+                <span>{{ t('options') }}</span>
                 <span class="check-row">
                   <label class="check">
-                    <input v-model="editForm.featured" type="checkbox">
-                    <span>Featured</span>
-                  </label>
-                  <label class="check">
                     <input v-model="editForm.setAsCover" type="checkbox">
-                    <span>设为系列封面</span>
+                    <span>{{ t('setAsPrimaryCover') }}</span>
                   </label>
                 </span>
               </label>
@@ -489,11 +572,11 @@ async function submitEdit() {
 
         <footer class="modal-foot">
           <button type="button" class="btn btn-ghost" :disabled="submittingEdit" @click="closeEdit">
-            取消
+            {{ t('commonCancel') }}
           </button>
           <button type="submit" class="btn btn-primary" :disabled="submittingEdit">
             <Icon :name="replacing ? 'lucide:loader-2' : 'lucide:save'" :class="{ 'icon-spin': replacing }" />
-            <span>{{ replacing ? '上传中…' : '保存' }}</span>
+            <span>{{ replacing ? t('uploading') : t('commonSave') }}</span>
           </button>
         </footer>
       </form>
@@ -806,4 +889,114 @@ async function submitEdit() {
 
 .icon-spin { animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.artwork-card.is-shadow { opacity: 0.78; }
+.artwork-card.is-shadow:hover { opacity: 1; }
+.artwork-card.is-shadow .artwork-thumb img { filter: saturate(0.85); }
+.artwork-card.is-shadow:hover .artwork-thumb img { filter: none; }
+
+.artwork-multi {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: auto;
+  height: auto;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  background: rgba(15, 16, 20, 0.78);
+  color: #fff;
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+}
+.artwork-multi em {
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-weight: 500;
+}
+.artwork-multi :deep(svg) { font-size: 0.78rem; }
+
+.artwork-secondary-flag {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  padding: 2px 7px;
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(22, 24, 31, 0.62);
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+}
+
+.series-picker {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.65rem 0.7rem;
+  background: rgba(22, 24, 31, 0.03);
+  border: 1px solid rgba(22, 24, 31, 0.08);
+  border-radius: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.series-picker-group { display: grid; gap: 0.3rem; }
+.series-picker-cat {
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6b7280;
+  font-weight: 500;
+}
+.series-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.series-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.55rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  background: #fff;
+  border: 1px solid rgba(22, 24, 31, 0.16);
+  color: #1a1d24;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.series-chip:hover { border-color: rgba(22, 24, 31, 0.36); }
+.series-chip.is-on {
+  background: rgba(22, 24, 31, 0.92);
+  color: #fff;
+  border-color: rgba(22, 24, 31, 0.92);
+}
+.series-chip.is-on.is-primary {
+  background: #8a1827;
+  border-color: #8a1827;
+}
+.series-chip-star {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 50%;
+  opacity: 0.7;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.series-chip-star:hover { opacity: 1; transform: scale(1.1); }
+.series-chip-star.is-primary { opacity: 1; color: #fbbf24; }
+.series-chip-star :deep(svg) { font-size: 0.85rem; }
 </style>

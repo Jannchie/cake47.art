@@ -50,7 +50,7 @@ interface ArtworkRow {
   height: number
   mimeType: string
   objectPosition: string | null
-  featured: boolean
+  isPrimary: boolean
   sortOrder: number
   createdAt: number | string
 }
@@ -212,6 +212,13 @@ const totalCount = computed(() => artworks.value.length)
 
 const currentIndex = ref(0)
 const filmstripRef = ref<HTMLElement | null>(null)
+const filmstripDragging = ref(false)
+let filmstripPointerId: number | null = null
+let filmstripDragStartX = 0
+let filmstripDragStartScrollLeft = 0
+let filmstripDragMoved = false
+let suppressFilmstripClick = false
+let suppressFilmstripClickTimer: number | null = null
 
 watch(artworks, () => {
   currentIndex.value = 0
@@ -262,6 +269,95 @@ function scrollFilmstripToCurrent() {
       behavior: 'smooth',
     })
   })
+}
+
+function clampFilmstripScroll(strip: HTMLElement, left: number) {
+  return Math.min(Math.max(left, 0), Math.max(strip.scrollWidth - strip.clientWidth, 0))
+}
+
+function handleFilmstripWheel(event: WheelEvent) {
+  const strip = filmstripRef.value
+  if (!strip || strip.scrollWidth <= strip.clientWidth) {
+    return
+  }
+
+  const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
+  if (delta === 0) {
+    return
+  }
+
+  event.preventDefault()
+  strip.scrollLeft = clampFilmstripScroll(strip, strip.scrollLeft + delta)
+}
+
+function handleFilmstripPointerDown(event: PointerEvent) {
+  const strip = filmstripRef.value
+  if (!strip || event.button !== 0) {
+    return
+  }
+
+  filmstripPointerId = event.pointerId
+  filmstripDragStartX = event.clientX
+  filmstripDragStartScrollLeft = strip.scrollLeft
+  filmstripDragMoved = false
+  filmstripDragging.value = true
+  strip.setPointerCapture(event.pointerId)
+}
+
+function handleFilmstripPointerMove(event: PointerEvent) {
+  const strip = filmstripRef.value
+  if (!strip || filmstripPointerId !== event.pointerId) {
+    return
+  }
+
+  const deltaX = event.clientX - filmstripDragStartX
+  if (Math.abs(deltaX) > 3) {
+    filmstripDragMoved = true
+  }
+
+  if (filmstripDragMoved) {
+    event.preventDefault()
+    strip.scrollLeft = clampFilmstripScroll(strip, filmstripDragStartScrollLeft - deltaX)
+  }
+}
+
+function handleFilmstripPointerEnd(event: PointerEvent) {
+  const strip = filmstripRef.value
+  if (filmstripPointerId !== event.pointerId) {
+    return
+  }
+
+  if (filmstripDragMoved) {
+    suppressFilmstripClick = true
+    if (suppressFilmstripClickTimer !== null) {
+      window.clearTimeout(suppressFilmstripClickTimer)
+    }
+    suppressFilmstripClickTimer = window.setTimeout(() => {
+      suppressFilmstripClick = false
+      suppressFilmstripClickTimer = null
+    }, 180)
+  }
+
+  if (strip?.hasPointerCapture(event.pointerId)) {
+    strip.releasePointerCapture(event.pointerId)
+  }
+  filmstripPointerId = null
+  filmstripDragging.value = false
+}
+
+function handleFilmThumbClick(event: MouseEvent, idx: number) {
+  if (suppressFilmstripClick) {
+    event.preventDefault()
+    event.stopPropagation()
+    suppressFilmstripClick = false
+    if (suppressFilmstripClickTimer !== null) {
+      window.clearTimeout(suppressFilmstripClickTimer)
+      suppressFilmstripClickTimer = null
+    }
+    return
+  }
+
+  selectIndex(idx)
 }
 
 function localizedSeriesName(s: SeriesRow) {
@@ -354,6 +450,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
+  if (suppressFilmstripClickTimer !== null) {
+    window.clearTimeout(suppressFilmstripClickTimer)
+  }
 })
 
 watch(activeCategory, (val) => {
@@ -527,7 +626,16 @@ watch(() => route.query.category, () => {
       </footer>
 
       <div class="film">
-        <div ref="filmstripRef" class="film-strip">
+        <div
+          ref="filmstripRef"
+          class="film-strip"
+          :class="{ 'is-dragging': filmstripDragging }"
+          @wheel="handleFilmstripWheel"
+          @pointerdown="handleFilmstripPointerDown"
+          @pointermove="handleFilmstripPointerMove"
+          @pointerup="handleFilmstripPointerEnd"
+          @pointercancel="handleFilmstripPointerEnd"
+        >
           <button
             v-for="(a, idx) in artworks"
             :key="a.id"
@@ -536,9 +644,9 @@ watch(() => route.query.category, () => {
             :class="{ 'is-active': idx === currentIndex }"
             :data-thumb-idx="idx"
             :title="localizedTitle(a)"
-            @click="selectIndex(idx)"
+            @click="handleFilmThumbClick($event, idx)"
           >
-            <img :src="a.url" :alt="localizedTitle(a)" loading="lazy" :style="{ objectPosition: a.objectPosition ?? '50% 30%' }">
+            <img :src="a.url" :alt="localizedTitle(a)" loading="lazy" draggable="false" :style="{ objectPosition: a.objectPosition ?? '50% 30%' }">
           </button>
           <div v-if="totalCount === 0" class="film-empty">
             {{ copy.empty }}
@@ -1083,9 +1191,18 @@ watch(() => route.query.category, () => {
   scroll-padding-inline: var(--film-edge-space);
   scroll-behavior: smooth;
   scrollbar-width: none;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .film-strip::-webkit-scrollbar { display: none; }
+
+.film-strip.is-dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
+}
 
 .film-thumb {
   position: relative;
@@ -1101,6 +1218,10 @@ watch(() => route.query.category, () => {
   opacity: 0.6;
   transform-origin: center bottom;
   transition: filter 0.5s ease, opacity 0.5s ease, transform 0.5s cubic-bezier(.2, .8, .2, 1);
+}
+
+.film-strip.is-dragging .film-thumb {
+  cursor: grabbing;
 }
 
 .film-thumb img {

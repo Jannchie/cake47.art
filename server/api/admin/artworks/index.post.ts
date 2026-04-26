@@ -1,10 +1,11 @@
 import { z } from 'zod'
 import { assertAdmin } from '~~/server/utils/auth'
-import { eq, tables, useDrizzle } from '~~/server/utils/drizzle'
+import { eq, inArray, tables, useDrizzle } from '~~/server/utils/drizzle'
 import { shortId } from '~~/server/utils/ids'
 
 const bodySchema = z.object({
-  seriesId: z.string().min(1),
+  seriesIds: z.array(z.string().min(1)).min(1),
+  primarySeriesId: z.string().min(1),
   storageKey: z.string().min(1),
   url: z.string().min(1),
   mimeType: z.string().default('image/jpeg'),
@@ -18,7 +19,6 @@ const bodySchema = z.object({
   descriptionEn: z.string().default(''),
   descriptionJa: z.string().default(''),
   objectPosition: z.string().nullable().optional(),
-  featured: z.boolean().default(false),
   sortOrder: z.number().int().default(0),
   setAsCover: z.boolean().default(false),
 })
@@ -26,12 +26,25 @@ const bodySchema = z.object({
 export default defineEventHandler(async (event) => {
   assertAdmin(event)
   const body = await readValidatedBody(event, bodySchema.parse)
+  if (!body.seriesIds.includes(body.primarySeriesId)) {
+    throw createError({ statusCode: 400, statusMessage: 'primarySeriesId must be one of seriesIds' })
+  }
+  const uniqueSeriesIds = Array.from(new Set(body.seriesIds))
+
   const db = useDrizzle()
+
+  const validSeries = await db
+    .select({ id: tables.series.id })
+    .from(tables.series)
+    .where(inArray(tables.series.id, uniqueSeriesIds))
+    .all()
+  if (validSeries.length !== uniqueSeriesIds.length) {
+    throw createError({ statusCode: 400, statusMessage: 'Unknown seriesId in payload' })
+  }
 
   const id = shortId()
   await db.insert(tables.artworks).values({
     id,
-    seriesId: body.seriesId,
     storageKey: body.storageKey,
     url: body.url,
     mimeType: body.mimeType,
@@ -45,15 +58,22 @@ export default defineEventHandler(async (event) => {
     descriptionEn: body.descriptionEn,
     descriptionJa: body.descriptionJa,
     objectPosition: body.objectPosition ?? null,
-    featured: body.featured,
-    sortOrder: body.sortOrder,
   }).run()
+
+  await db.insert(tables.artworkSeriesLinks).values(
+    uniqueSeriesIds.map(seriesId => ({
+      artworkId: id,
+      seriesId,
+      isPrimary: seriesId === body.primarySeriesId,
+      sortOrder: body.sortOrder,
+    })),
+  ).run()
 
   if (body.setAsCover) {
     await db
       .update(tables.series)
       .set({ coverArtworkId: id })
-      .where(eq(tables.series.id, body.seriesId))
+      .where(eq(tables.series.id, body.primarySeriesId))
       .run()
   }
 

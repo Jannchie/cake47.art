@@ -1,7 +1,11 @@
 <script setup lang="ts">
+import { isLocale, localizedPath } from '~/utils/useLocale'
+
 definePageMeta({ layout: false })
 
 const store = useAdminStore()
+const { locale, locales, localeName, setLocale, t } = useAdminI18n()
+const route = useRoute()
 const {
   authed,
   checkingAuth,
@@ -14,12 +18,44 @@ const {
   loadingData,
 } = store
 
-const tabs = [
-  { id: 'upload', label: 'Upload', sub: '上传', to: '/admin/upload' },
-  { id: 'artworks', label: 'Artworks', sub: '作品', to: '/admin/artworks' },
-  { id: 'series', label: 'Series', sub: '系列', to: '/admin/series' },
-  { id: 'home', label: 'Home', sub: '首页', to: '/admin/home' },
-] as const
+const tabs = computed(() => [
+  { id: 'upload', label: t('tabUpload'), to: '/admin/upload' },
+  { id: 'artworks', label: t('tabArtworks'), to: '/admin/artworks' },
+  { id: 'series', label: t('tabSeries'), to: '/admin/series' },
+  { id: 'home', label: t('tabHome'), to: '/admin/home' },
+] as const)
+
+const activeTabLabel = computed(() => {
+  return tabs.value.find(tab => route.path === tab.to || route.path.startsWith(`${tab.to}/`))?.label
+})
+
+const adminSeoTitle = computed(() => {
+  const prefix = activeTabLabel.value ? `${activeTabLabel.value} · ` : ''
+  return `${prefix}${t('adminTitle')} · cake47.art`
+})
+
+useSeoMeta({
+  title: () => adminSeoTitle.value,
+  description: () => t('adminSeoDescription'),
+  ogTitle: () => adminSeoTitle.value,
+  ogDescription: () => t('adminSeoDescription'),
+  twitterTitle: () => adminSeoTitle.value,
+  twitterDescription: () => t('adminSeoDescription'),
+  robots: 'noindex, nofollow',
+})
+
+useHead(() => ({
+  htmlAttrs: {
+    lang: locale.value,
+  },
+}))
+
+function onLocaleChange(event: Event) {
+  const next = (event.target as HTMLSelectElement).value
+  if (isLocale(next)) {
+    setLocale(next)
+  }
+}
 
 watch(authed, (val) => {
   if (val) {
@@ -42,12 +78,12 @@ onMounted(async () => {
         <div class="login-card">
           <header class="login-head">
             <span class="login-brand">cake47.art</span>
-            <h1>Admin</h1>
-            <p>请输入访问口令进入管理后台</p>
+            <h1>{{ t('adminTitle') }}</h1>
+            <p>{{ t('loginDescription') }}</p>
           </header>
           <form class="login-form" @submit.prevent="login">
             <label class="field">
-              <span>Access token</span>
+              <span>{{ t('accessToken') }}</span>
               <input
                 v-model="tokenInput"
                 type="password"
@@ -59,11 +95,11 @@ onMounted(async () => {
               {{ tokenError }}
             </p>
             <button type="submit" class="btn btn-primary btn-block">
-              登录
+              {{ t('login') }}
             </button>
           </form>
           <small class="login-hint">
-            local dev token: <code>local-dev-token</code>
+            {{ t('localDevToken') }}: <code>local-dev-token</code>
           </small>
         </div>
       </section>
@@ -95,13 +131,21 @@ onMounted(async () => {
           </nav>
 
           <div class="topbar-actions">
-            <NuxtLink href="/gallery" target="_blank" class="btn btn-ghost btn-sm">
+            <label class="locale-switch">
+              <span>{{ t('language') }}</span>
+              <select :value="locale" @change="onLocaleChange">
+                <option v-for="item in locales" :key="item" :value="item">
+                  {{ localeName(item) }}
+                </option>
+              </select>
+            </label>
+            <NuxtLink :href="localizedPath(locale, 'gallery')" target="_blank" class="btn btn-ghost btn-sm">
               <Icon name="lucide:external-link" />
-              <span>查看画廊</span>
+              <span>{{ t('viewGallery') }}</span>
             </NuxtLink>
             <button type="button" class="btn btn-ghost btn-sm" @click="logout">
               <Icon name="lucide:log-out" />
-              <span>登出</span>
+              <span>{{ t('logout') }}</span>
             </button>
           </div>
         </header>
@@ -115,7 +159,7 @@ onMounted(async () => {
     <Transition name="fade">
       <div v-if="loadingData && authed" class="status-toast">
         <Icon name="lucide:loader" class="spin" />
-        <span>loading…</span>
+        <span>{{ t('loading') }}</span>
       </div>
     </Transition>
   </main>
@@ -287,6 +331,24 @@ onMounted(async () => {
 }
 
 .topbar-actions { display: inline-flex; align-items: center; gap: 0.4rem; }
+
+.locale-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--admin-muted);
+  font-size: 0.76rem;
+}
+
+.locale-switch select {
+  height: 31px;
+  padding: 0 0.45rem;
+  background: #fff;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 6px;
+  color: #1a1d24;
+  font: inherit;
+}
 
 @media (max-width: 760px) {
   .topbar { grid-template-columns: 1fr; gap: 0.5rem; }

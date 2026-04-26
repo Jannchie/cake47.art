@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const db = useDrizzle()
   const row = await db
-    .select({ storageKey: tables.artworks.storageKey, seriesId: tables.artworks.seriesId })
+    .select({ storageKey: tables.artworks.storageKey })
     .from(tables.artworks)
     .where(eq(tables.artworks.id, id))
     .get()

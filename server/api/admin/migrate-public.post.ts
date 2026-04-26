@@ -24,7 +24,6 @@ interface SourceArtwork {
   series: SeriesId
   category: CategoryId
   src: string
-  featured?: boolean
   objectPosition?: string
 }
 
@@ -42,33 +41,33 @@ const SERIES_LABELS: Record<SeriesId, { zh: string; en: string; ja: string; sort
 }
 
 const SOURCE_ARTWORKS: SourceArtwork[] = [
-  { series: 'original', category: 'original-oc', src: '/images/snowcake47/original-oc/Ekac/Ekac-1.png', featured: true },
+  { series: 'original', category: 'original-oc', src: '/images/snowcake47/original-oc/Ekac/Ekac-1.png' },
   { series: 'original', category: 'original-oc', src: '/images/snowcake47/original-oc/Ekac/Ekac-2.jpg' },
   { series: 'original', category: 'original-oc', src: '/images/snowcake47/original-oc/Ekac/Ekac-3.jpg' },
   { series: 'original', category: 'original-oc', src: '/images/snowcake47/original-oc/Ekac/Ekac-4.jpg' },
   { series: 'original', category: 'original-oc', src: '/images/snowcake47/original-oc/butterfly-portrait.jpg' },
   { series: 'original', category: 'original-oc', src: '/images/snowcake47/original-oc/white-hair-snake.jpg' },
-  { series: 'original', category: 'original-oc', src: '/images/snowcake47/original-oc/snow-portrait.jpg', featured: true },
+  { series: 'original', category: 'original-oc', src: '/images/snowcake47/original-oc/snow-portrait.jpg' },
   { series: 'danganronpa', category: 'fan-works', src: '/images/snowcake47/game-fanart/danganronpa/chiaki-nanami.jpg' },
   { series: 'danganronpa', category: 'fan-works', src: '/images/snowcake47/game-fanart/danganronpa/tsumugi-shirogane.jpg' },
   { series: 'danganronpa', category: 'fan-works', src: '/images/snowcake47/game-fanart/danganronpa/sayaka-maizono.jpg' },
   { series: 'danganronpa', category: 'fan-works', src: '/images/snowcake47/game-fanart/danganronpa/kaede-akamatsu.jpg' },
-  { series: 'star-rail', category: 'fan-works', src: '/images/snowcake47/game-fanart/honkai-star-rail/evernight.jpg', featured: true },
+  { series: 'star-rail', category: 'fan-works', src: '/images/snowcake47/game-fanart/honkai-star-rail/evernight.jpg' },
   { series: 'star-rail', category: 'fan-works', src: '/images/snowcake47/game-fanart/honkai-star-rail/march-7th.jpg' },
-  { series: 'star-rail', category: 'fan-works', src: '/images/snowcake47/game-fanart/honkai-star-rail/Firefly.png', featured: true },
+  { series: 'star-rail', category: 'fan-works', src: '/images/snowcake47/game-fanart/honkai-star-rail/Firefly.png' },
   { series: 'star-rail', category: 'fan-works', src: '/images/snowcake47/game-fanart/honkai-star-rail/Hysilens.png' },
-  { series: 'duet-night-abyss', category: 'fan-works', src: '/images/snowcake47/game-fanart/duet-night-abyss/rebecca.jpg', featured: true },
+  { series: 'duet-night-abyss', category: 'fan-works', src: '/images/snowcake47/game-fanart/duet-night-abyss/rebecca.jpg' },
   { series: 'magical-girl-witch-trials', category: 'fan-works', src: '/images/snowcake47/game-fanart/magical-girl-witch-trials/black-red-portrait.jpg' },
-  { series: 'onmyoji', category: 'fan-works', src: '/images/snowcake47/game-fanart/onmyoji/HEVm68RbYAUmYxD.jpg', featured: true },
+  { series: 'onmyoji', category: 'fan-works', src: '/images/snowcake47/game-fanart/onmyoji/HEVm68RbYAUmYxD.jpg' },
   { series: 'vocaloid', category: 'fan-works', src: '/images/snowcake47/anime-fanart/vocaloid/hatsune-miku.jpg' },
-  { series: 'vocaloid', category: 'fan-works', src: '/images/snowcake47/anime-fanart/vocaloid/racing-miku.jpg', featured: true },
+  { series: 'vocaloid', category: 'fan-works', src: '/images/snowcake47/anime-fanart/vocaloid/racing-miku.jpg' },
   { series: 'sousou-no-frieren', category: 'fan-works', src: '/images/snowcake47/anime-fanart/sousou-no-frieren/flamme.jpg' },
-  { series: 'sousou-no-frieren', category: 'fan-works', src: '/images/snowcake47/anime-fanart/sousou-no-frieren/red-dress-portrait.jpg', featured: true },
-  { series: 'code-geass', category: 'fan-works', src: '/images/snowcake47/anime-fanart/code-geass/euphemia-good-night.jpg', featured: true },
+  { series: 'sousou-no-frieren', category: 'fan-works', src: '/images/snowcake47/anime-fanart/sousou-no-frieren/red-dress-portrait.jpg' },
+  { series: 'code-geass', category: 'fan-works', src: '/images/snowcake47/anime-fanart/code-geass/euphemia-good-night.jpg' },
   { series: 'commission', category: 'commercial-commission', src: '/images/snowcake47/commercial-commission/blue-accent-portrait.jpg' },
-  { series: 'commission', category: 'commercial-commission', src: '/images/snowcake47/commercial-commission/blue-white-mage.jpg', featured: true },
+  { series: 'commission', category: 'commercial-commission', src: '/images/snowcake47/commercial-commission/blue-white-mage.jpg' },
   { series: 'commission', category: 'commercial-commission', src: '/images/snowcake47/commercial-commission/wisteria-twins.jpg' },
-  { series: 'commission', category: 'commercial-commission', src: '/images/snowcake47/commercial-commission/wedding-blue.jpg', featured: true },
+  { series: 'commission', category: 'commercial-commission', src: '/images/snowcake47/commercial-commission/wedding-blue.jpg' },
   { series: 'commission', category: 'commercial-commission', src: '/images/snowcake47/commercial-commission/blue-black-dress.jpg' },
   { series: 'commission', category: 'commercial-commission', src: '/images/snowcake47/commercial-commission/red-crown-portrait.jpg' },
   { series: 'commission', category: 'commercial-commission', src: '/images/snowcake47/commercial-commission/lemonne-birthday.jpg' },
@@ -243,7 +242,6 @@ export default defineEventHandler(async (event) => {
     const id = shortId()
     await db.insert(tables.artworks).values({
       id,
-      seriesId,
       storageKey: stored.pathname,
       url: `/api/files/${stored.pathname}`,
       mimeType: file.mime,
@@ -251,8 +249,13 @@ export default defineEventHandler(async (event) => {
       titleEn: titleFromSrc(item.src),
       titleZh: '',
       titleJa: '',
-      featured: !!item.featured,
       objectPosition: item.objectPosition ?? null,
+    }).run()
+    await db.insert(tables.artworkSeriesLinks).values({
+      artworkId: id,
+      seriesId,
+      isPrimary: true,
+      sortOrder: 0,
     }).run()
     artworkBySrc.set(item.src, id)
     summary.artworks.created++

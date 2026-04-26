@@ -23,10 +23,10 @@ export default defineEventHandler(async () => {
       descriptionJa: tables.series.descriptionJa,
       coverArtworkId: tables.series.coverArtworkId,
       sortOrder: tables.series.sortOrder,
-      artworkCount: sql<number>`count(${tables.artworks.id})`.as('artwork_count'),
+      artworkCount: sql<number>`count(${tables.artworkSeriesLinks.artworkId})`.as('artwork_count'),
     })
     .from(tables.series)
-    .leftJoin(tables.artworks, eq(tables.artworks.seriesId, tables.series.id))
+    .leftJoin(tables.artworkSeriesLinks, eq(tables.artworkSeriesLinks.seriesId, tables.series.id))
     .groupBy(tables.series.id)
     .orderBy(asc(tables.series.sortOrder), asc(tables.series.nameEn))
     .all()

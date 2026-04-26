@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { assertAdmin } from '~~/server/utils/auth'
-import { and, asc, desc, eq, tables, useDrizzle } from '~~/server/utils/drizzle'
+import { and, desc, eq, inArray, tables, useDrizzle } from '~~/server/utils/drizzle'
 
 const querySchema = z.object({
   series: z.string().optional(),
@@ -14,22 +14,30 @@ export default defineEventHandler(async (event) => {
   const query = await getValidatedQuery(event, querySchema.parse)
   const db = useDrizzle()
 
-  const conditions = []
-  if (query.series) {
-    conditions.push(eq(tables.series.slug, query.series))
-  }
-  if (query.category) {
-    conditions.push(eq(tables.series.categoryId, query.category))
+  let filteredArtworkIds: string[] | null = null
+  if (query.series || query.category) {
+    const conditions = []
+    if (query.series) {
+      conditions.push(eq(tables.series.slug, query.series))
+    }
+    if (query.category) {
+      conditions.push(eq(tables.series.categoryId, query.category))
+    }
+    const matching = await db
+      .selectDistinct({ artworkId: tables.artworkSeriesLinks.artworkId })
+      .from(tables.artworkSeriesLinks)
+      .innerJoin(tables.series, eq(tables.series.id, tables.artworkSeriesLinks.seriesId))
+      .where(and(...conditions))
+      .all()
+    filteredArtworkIds = matching.map(m => m.artworkId)
+    if (filteredArtworkIds.length === 0) {
+      return { items: [] }
+    }
   }
 
-  const rows = await db
+  const artworkRows = await db
     .select({
       id: tables.artworks.id,
-      seriesId: tables.artworks.seriesId,
-      seriesSlug: tables.series.slug,
-      seriesNameEn: tables.series.nameEn,
-      seriesNameZh: tables.series.nameZh,
-      categoryId: tables.series.categoryId,
       titleZh: tables.artworks.titleZh,
       titleEn: tables.artworks.titleEn,
       titleJa: tables.artworks.titleJa,
@@ -43,17 +51,80 @@ export default defineEventHandler(async (event) => {
       mimeType: tables.artworks.mimeType,
       sizeBytes: tables.artworks.sizeBytes,
       objectPosition: tables.artworks.objectPosition,
-      featured: tables.artworks.featured,
-      sortOrder: tables.artworks.sortOrder,
       createdAt: tables.artworks.createdAt,
     })
     .from(tables.artworks)
-    .innerJoin(tables.series, eq(tables.series.id, tables.artworks.seriesId))
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(tables.artworks.createdAt), asc(tables.artworks.sortOrder))
+    .where(filteredArtworkIds ? inArray(tables.artworks.id, filteredArtworkIds) : undefined)
+    .orderBy(desc(tables.artworks.createdAt))
     .limit(query.limit)
     .offset(query.offset)
     .all()
 
-  return { items: rows }
+  if (artworkRows.length === 0) {
+    return { items: [] }
+  }
+
+  const ids = artworkRows.map(a => a.id)
+  const linkRows = await db
+    .select({
+      artworkId: tables.artworkSeriesLinks.artworkId,
+      seriesId: tables.artworkSeriesLinks.seriesId,
+      isPrimary: tables.artworkSeriesLinks.isPrimary,
+      sortOrder: tables.artworkSeriesLinks.sortOrder,
+      seriesSlug: tables.series.slug,
+      seriesNameEn: tables.series.nameEn,
+      seriesNameZh: tables.series.nameZh,
+      seriesNameJa: tables.series.nameJa,
+      seriesSortOrder: tables.series.sortOrder,
+      categoryId: tables.series.categoryId,
+    })
+    .from(tables.artworkSeriesLinks)
+    .innerJoin(tables.series, eq(tables.series.id, tables.artworkSeriesLinks.seriesId))
+    .where(inArray(tables.artworkSeriesLinks.artworkId, ids))
+    .all()
+
+  type LinkRow = typeof linkRows[number]
+  const linksByArtwork = new Map<string, LinkRow[]>()
+  for (const link of linkRows) {
+    const arr = linksByArtwork.get(link.artworkId) ?? []
+    arr.push(link)
+    linksByArtwork.set(link.artworkId, arr)
+  }
+
+  return {
+    items: artworkRows.map((art) => {
+      const links = linksByArtwork.get(art.id) ?? []
+      links.sort((a, b) => {
+        if (a.isPrimary && !b.isPrimary) {
+          return -1
+        }
+        if (!a.isPrimary && b.isPrimary) {
+          return 1
+        }
+        return a.seriesSortOrder - b.seriesSortOrder
+      })
+      const primary = links.find(l => l.isPrimary) ?? links[0]
+      return {
+        ...art,
+        seriesIds: links.map(l => l.seriesId),
+        primarySeriesId: primary?.seriesId ?? '',
+        categoryIds: Array.from(new Set(links.map(l => l.categoryId))),
+        primaryCategoryId: primary?.categoryId ?? '',
+        primarySeriesSlug: primary?.seriesSlug ?? '',
+        primarySeriesNameEn: primary?.seriesNameEn ?? '',
+        primarySeriesNameZh: primary?.seriesNameZh ?? '',
+        primarySeriesNameJa: primary?.seriesNameJa ?? '',
+        seriesEntries: links.map(l => ({
+          seriesId: l.seriesId,
+          seriesSlug: l.seriesSlug,
+          seriesNameEn: l.seriesNameEn,
+          seriesNameZh: l.seriesNameZh,
+          seriesNameJa: l.seriesNameJa,
+          categoryId: l.categoryId,
+          isPrimary: l.isPrimary,
+          sortOrder: l.sortOrder,
+        })),
+      }
+    }),
+  }
 })

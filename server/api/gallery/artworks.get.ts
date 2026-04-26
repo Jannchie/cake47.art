@@ -5,9 +5,6 @@ import { versionBlobUrl } from '~~/server/utils/blob-url'
 const querySchema = z.object({
   category: z.string().optional(),
   series: z.string().optional(),
-  featured: z
-    .union([z.literal('1'), z.literal('true'), z.literal('0'), z.literal('false')])
-    .optional(),
   limit: z.coerce.number().int().min(1).max(200).default(60),
   offset: z.coerce.number().int().min(0).default(0),
 })
@@ -31,14 +28,14 @@ export default defineEventHandler(async (event) => {
   if (category) {
     conditions.push(eq(tables.series.categoryId, category))
   }
-  if (query.featured === '1' || query.featured === 'true') {
-    conditions.push(eq(tables.artworks.featured, true))
+  if (!query.series && !category) {
+    conditions.push(eq(tables.artworkSeriesLinks.isPrimary, true))
   }
 
   const rows = await db
     .select({
       id: tables.artworks.id,
-      seriesId: tables.artworks.seriesId,
+      seriesId: tables.series.id,
       titleZh: tables.artworks.titleZh,
       titleEn: tables.artworks.titleEn,
       titleJa: tables.artworks.titleJa,
@@ -51,8 +48,8 @@ export default defineEventHandler(async (event) => {
       height: tables.artworks.height,
       mimeType: tables.artworks.mimeType,
       objectPosition: tables.artworks.objectPosition,
-      featured: tables.artworks.featured,
-      sortOrder: tables.artworks.sortOrder,
+      sortOrder: tables.artworkSeriesLinks.sortOrder,
+      isPrimary: tables.artworkSeriesLinks.isPrimary,
       createdAt: tables.artworks.createdAt,
       seriesSlug: tables.series.slug,
       seriesNameZh: tables.series.nameZh,
@@ -61,25 +58,36 @@ export default defineEventHandler(async (event) => {
       categoryId: tables.series.categoryId,
     })
     .from(tables.artworks)
-    .innerJoin(tables.series, eq(tables.series.id, tables.artworks.seriesId))
+    .innerJoin(tables.artworkSeriesLinks, eq(tables.artworkSeriesLinks.artworkId, tables.artworks.id))
+    .innerJoin(tables.series, eq(tables.series.id, tables.artworkSeriesLinks.seriesId))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(
-      asc(tables.artworks.sortOrder),
+      asc(tables.artworkSeriesLinks.sortOrder),
       desc(tables.artworks.createdAt),
     )
     .limit(query.limit)
     .offset(query.offset)
     .all()
 
+  const seen = new Set<string>()
+  const items: typeof rows = []
+  for (const row of rows) {
+    if (seen.has(row.id)) {
+      continue
+    }
+    seen.add(row.id)
+    items.push(row)
+  }
+
   return {
-    items: rows.map(row => ({
+    items: items.map(row => ({
       ...row,
       url: versionBlobUrl(row.url, row.sizeBytes),
     })),
     pagination: {
       limit: query.limit,
       offset: query.offset,
-      count: rows.length,
+      count: items.length,
     },
   }
 })

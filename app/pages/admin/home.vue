@@ -5,6 +5,12 @@ definePageMeta({ layout: false })
 
 const store = useAdminStore()
 const { adminApi, categories, artworks, homeSlotMap, homeSelected, homeCarousel, loadAll, categoryLabel } = store
+const {
+  t,
+  localizedArtworkTitle,
+  localizedCategoryLabel,
+  localizedSeriesName,
+} = useAdminI18n()
 
 interface HomeGroupDef {
   id: 'hero' | 'category' | 'ekac'
@@ -18,18 +24,18 @@ const homeFixedGroups = computed<HomeGroupDef[]>(() => {
   const meta: Record<HomeGroupDef['id'], { title: string; subtitle: string; description: string }> = {
     hero: {
       title: 'Hero',
-      subtitle: '主推 · Featured Frame',
-      description: '首屏 N°00 大图：作品集页"Selected Works"区域顶部的强调框。',
+      subtitle: t('heroSubtitle'),
+      description: t('heroDescription'),
     },
     category: {
       title: 'Categories',
-      subtitle: '分类卡片 · Collection Cards',
-      description: '"创作方向"区域 4 张分类入口卡，每个分类各一张代表作。',
+      subtitle: t('categorySubtitle'),
+      description: t('categoryDescription'),
     },
     ekac: {
       title: 'Ekac',
-      subtitle: 'OC 专题 · Spotlight',
-      description: 'Ekac 原创角色独立板块，Hero 大图 + 3 张缩略图。',
+      subtitle: t('ekacSubtitle'),
+      description: t('ekacDescription'),
     },
   }
   const order: HomeGroupDef['id'][] = ['hero', 'ekac', 'category']
@@ -99,13 +105,13 @@ async function assignHomeSlot(artworkId: string) {
     await loadAll()
   }
   catch (error: unknown) {
-    const msg = (error as { statusMessage?: string }).statusMessage ?? '操作失败'
+    const msg = (error as { statusMessage?: string }).statusMessage ?? t('assignFailed')
     alert(msg)
   }
 }
 
 async function clearHomeSlot(slot: string) {
-  if (!confirm('清除此槽位？')) {
+  if (!confirm(t('confirmClearSlot'))) {
     return
   }
   await adminApi.fetch(`/api/admin/home/${slot}`, { method: 'DELETE' })
@@ -113,7 +119,7 @@ async function clearHomeSlot(slot: string) {
 }
 
 async function removeSelected(slotKey: string) {
-  if (!confirm('从精选移除？')) {
+  if (!confirm(t('confirmRemoveSelected'))) {
     return
   }
   await adminApi.fetch(`/api/admin/home/selected/${slotKey}`, { method: 'DELETE' })
@@ -121,7 +127,7 @@ async function removeSelected(slotKey: string) {
 }
 
 async function removeCarousel(slotKey: string) {
-  if (!confirm('从首页轮播移除？')) {
+  if (!confirm(t('confirmRemoveCarousel'))) {
     return
   }
   await adminApi.fetch(`/api/admin/home/carousel/${slotKey}`, { method: 'DELETE' })
@@ -131,12 +137,12 @@ async function removeCarousel(slotKey: string) {
 const homePickerArtworks = computed(() => {
   let list = artworks.value
   if (homePickerCategory.value) {
-    list = list.filter(a => a.categoryId === homePickerCategory.value)
+    list = list.filter(a => a.categoryIds.includes(homePickerCategory.value))
   }
   const query = homePickerSearch.value.trim().toLowerCase()
   if (query) {
     list = list.filter(a =>
-      [a.titleEn, a.titleZh, a.titleJa, a.seriesNameEn, a.seriesNameZh].some(t => t.toLowerCase().includes(query)),
+      [a.titleEn, a.titleZh, a.titleJa, a.descriptionEn, a.descriptionZh, a.descriptionJa, a.primarySeriesNameEn, a.primarySeriesNameZh, a.primarySeriesNameJa].some(t => t.toLowerCase().includes(query)),
     )
   }
   return list
@@ -160,12 +166,12 @@ const pickedIds = computed<Set<string>>(() => {
 function pickedLabel(): string {
   const mode = homePickerMode.value
   if (mode?.type === 'append-selected') {
-    return '已在 Selected'
+    return t('alreadySelected')
   }
   if (mode?.type === 'append-carousel') {
-    return '已在 Carousel'
+    return t('alreadyCarousel')
   }
-  return '当前槽位'
+  return t('currentSlot')
 }
 
 function onPickerCardClick(id: string) {
@@ -181,21 +187,21 @@ function onPickerCardClick(id: string) {
   <section class="page">
     <header class="page-head">
       <div>
-        <h2>首页槽位</h2>
-        <p>固定槽位按分组管理；未配置的槽位会在首页隐藏。Selected 作品支持自由追加 / 删除。</p>
+        <h2>{{ t('homeTitle') }}</h2>
+        <p>{{ t('homeDescription') }}</p>
       </div>
     </header>
 
     <section class="home-group">
       <header class="home-group-head">
         <div>
-          <span class="home-group-eyebrow">3D 轮播 · Hero Carousel</span>
+          <span class="home-group-eyebrow">{{ t('carouselEyebrow') }}</span>
           <h3>Carousel</h3>
-          <p>首屏 ThreeScene 旋转展示的图。仅 portrait 比例的图会被使用，横图会被自动忽略。</p>
+          <p>{{ t('carouselDescription') }}</p>
         </div>
         <span class="home-group-tally">
           <strong>{{ homeCarousel.length }}</strong>
-          <small>filed</small>
+          <small>{{ t('filed') }}</small>
         </span>
       </header>
 
@@ -206,22 +212,22 @@ function onPickerCardClick(id: string) {
           class="home-slot is-set"
           :class="{ 'is-warn': item.height > 0 && item.width >= item.height }"
         >
-          <img class="home-slot-img" :src="item.url" :alt="item.titleEn || item.seriesNameEn" loading="lazy">
+          <img class="home-slot-img" :src="item.url" :alt="localizedArtworkTitle(item, localizedSeriesName(item))" loading="lazy">
 
           <span class="home-slot-id">carousel · {{ String(idx + 1).padStart(2, '0') }}</span>
 
           <div class="home-slot-actions">
-            <button type="button" class="overlay-icon is-danger" title="从 Carousel 移除" @click="removeCarousel(item.slotKey)">
+            <button type="button" class="overlay-icon is-danger" :title="t('removeFromCarousel')" @click="removeCarousel(item.slotKey)">
               <Icon name="lucide:x" />
             </button>
           </div>
 
           <div class="home-slot-caption">
-            <strong>{{ item.titleEn || item.seriesNameEn }}</strong>
+            <strong>{{ localizedArtworkTitle(item, localizedSeriesName(item)) }}</strong>
             <small>
-              {{ item.seriesNameZh }}
+              {{ localizedSeriesName(item) }}
               <template v-if="item.height > 0 && item.width >= item.height">
-                · <span class="home-slot-warn-inline">非竖图</span>
+                · <span class="home-slot-warn-inline">{{ t('portraitWarning') }}</span>
               </template>
             </small>
           </div>
@@ -231,8 +237,8 @@ function onPickerCardClick(id: string) {
           <span class="home-slot-add-mark" aria-hidden="true">
             <Icon name="lucide:plus" />
           </span>
-          <span class="home-slot-add-title">添加到 Carousel</span>
-          <small class="home-slot-add-hint">从作品库挑选 · 仅 portrait 会显示</small>
+          <span class="home-slot-add-title">{{ t('addToCarousel') }}</span>
+          <small class="home-slot-add-hint">{{ t('carouselAddHint') }}</small>
         </button>
       </div>
     </section>
@@ -247,7 +253,7 @@ function onPickerCardClick(id: string) {
           </div>
           <span class="home-group-tally">
             <strong>{{ group.slots.filter(s => homeSlotMap[s.key]).length }}</strong>
-            <small>/ {{ group.slots.length }} set</small>
+            <small>/ {{ group.slots.length }} {{ t('setUnit') }}</small>
           </span>
         </header>
 
@@ -262,7 +268,7 @@ function onPickerCardClick(id: string) {
               v-if="homeSlotMap[slot.key]"
               class="home-slot-img"
               :src="homeSlotMap[slot.key].url"
-              :alt="homeSlotMap[slot.key].titleEn || homeSlotMap[slot.key].seriesNameEn"
+              :alt="localizedArtworkTitle(homeSlotMap[slot.key], localizedSeriesName(homeSlotMap[slot.key]))"
               loading="lazy"
             >
 
@@ -274,24 +280,24 @@ function onPickerCardClick(id: string) {
             >
               <Icon name="lucide:image-plus" />
               <span class="home-slot-empty-title">{{ slot.label }}</span>
-              <small class="home-slot-empty-hint">未配置 · 点击指定</small>
+              <small class="home-slot-empty-hint">{{ t('unsetSlotHint') }}</small>
             </button>
 
             <span class="home-slot-id">{{ slot.key }}</span>
 
             <div v-if="homeSlotMap[slot.key]" class="home-slot-actions">
-              <button type="button" class="overlay-icon" title="更换" @click="openHomePicker(slot.key)">
+              <button type="button" class="overlay-icon" :title="t('replaceSlot')" @click="openHomePicker(slot.key)">
                 <Icon name="lucide:replace" />
               </button>
-              <button type="button" class="overlay-icon is-danger" title="清除" @click="clearHomeSlot(slot.key)">
+              <button type="button" class="overlay-icon is-danger" :title="t('clearSlot')" @click="clearHomeSlot(slot.key)">
                 <Icon name="lucide:x" />
               </button>
             </div>
 
             <div v-if="homeSlotMap[slot.key]" class="home-slot-caption">
               <span class="home-slot-caption-label">{{ slot.label }}</span>
-              <strong>{{ homeSlotMap[slot.key].titleEn || homeSlotMap[slot.key].seriesNameEn }}</strong>
-              <small>{{ homeSlotMap[slot.key].seriesNameZh }} · {{ categoryLabel(homeSlotMap[slot.key].categoryId) }}</small>
+              <strong>{{ localizedArtworkTitle(homeSlotMap[slot.key], localizedSeriesName(homeSlotMap[slot.key])) }}</strong>
+              <small>{{ localizedSeriesName(homeSlotMap[slot.key]) }} · {{ categoryLabel(homeSlotMap[slot.key].categoryId) }}</small>
             </div>
           </article>
         </div>
@@ -300,13 +306,13 @@ function onPickerCardClick(id: string) {
       <section v-if="group.id === 'hero'" class="home-group">
         <header class="home-group-head">
           <div>
-            <span class="home-group-eyebrow">精选 · Mosaic Grid</span>
+            <span class="home-group-eyebrow">{{ t('selectedEyebrow') }}</span>
             <h3>Selected Works</h3>
-            <p>主推下面的瀑布流，按顺序展示。可自由追加或删除任意一项。</p>
+            <p>{{ t('selectedDescription') }}</p>
           </div>
           <span class="home-group-tally">
             <strong>{{ homeSelected.length }}</strong>
-            <small>filed</small>
+            <small>{{ t('filed') }}</small>
           </span>
         </header>
 
@@ -316,19 +322,19 @@ function onPickerCardClick(id: string) {
             :key="item.slotKey"
             class="home-slot is-set"
           >
-            <img class="home-slot-img" :src="item.url" :alt="item.titleEn || item.seriesNameEn" loading="lazy">
+            <img class="home-slot-img" :src="item.url" :alt="localizedArtworkTitle(item, localizedSeriesName(item))" loading="lazy">
 
             <span class="home-slot-id">selected · {{ String(idx + 1).padStart(2, '0') }}</span>
 
             <div class="home-slot-actions">
-              <button type="button" class="overlay-icon is-danger" title="从 Selected 移除" @click="removeSelected(item.slotKey)">
+              <button type="button" class="overlay-icon is-danger" :title="t('removeSelected')" @click="removeSelected(item.slotKey)">
                 <Icon name="lucide:x" />
               </button>
             </div>
 
             <div class="home-slot-caption">
-              <strong>{{ item.titleEn || item.seriesNameEn }}</strong>
-              <small>{{ item.seriesNameZh }} · {{ categoryLabel(item.categoryId) }}</small>
+              <strong>{{ localizedArtworkTitle(item, localizedSeriesName(item)) }}</strong>
+              <small>{{ localizedSeriesName(item) }} · {{ categoryLabel(item.categoryId) }}</small>
             </div>
           </article>
 
@@ -336,8 +342,8 @@ function onPickerCardClick(id: string) {
             <span class="home-slot-add-mark" aria-hidden="true">
               <Icon name="lucide:plus" />
             </span>
-            <span class="home-slot-add-title">添加到 Selected</span>
-            <small class="home-slot-add-hint">从作品库挑选 · {{ artworks.length }} 件可选</small>
+            <span class="home-slot-add-title">{{ t('addToSelected') }}</span>
+            <small class="home-slot-add-hint">{{ t('selectedAddHint', { count: artworks.length }) }}</small>
           </button>
         </div>
       </section>
@@ -345,32 +351,32 @@ function onPickerCardClick(id: string) {
 
     <AdminModal v-model="showHomePicker" size="picker">
       <template #title>
-        选择作品 ·
+        {{ t('chooseArtwork') }} ·
         <span v-if="homePickerMode?.type === 'slot'">{{ homePickerMode.slot }}</span>
-        <span v-else-if="homePickerMode?.type === 'append-selected'">追加到 Selected</span>
-        <span v-else-if="homePickerMode?.type === 'append-carousel'">追加到 Carousel</span>
+        <span v-else-if="homePickerMode?.type === 'append-selected'">{{ t('appendSelected') }}</span>
+        <span v-else-if="homePickerMode?.type === 'append-carousel'">{{ t('appendCarousel') }}</span>
       </template>
       <div class="picker-toolbar">
         <select v-model="homePickerCategory" class="picker-select">
           <option value="">
-            全部分类
+            {{ t('allCategories') }}
           </option>
           <option v-for="c in categories" :key="c.id" :value="c.id">
-            {{ c.labelEn }}
+            {{ localizedCategoryLabel(c) }}
           </option>
         </select>
         <div class="picker-search">
           <Icon name="lucide:search" class="picker-search-icon" />
-          <input v-model="homePickerSearch" type="text" placeholder="搜索标题或系列…">
+          <input v-model="homePickerSearch" type="text" :placeholder="t('searchTitleOrSeries')">
         </div>
         <span class="toolbar-count">
           <strong>{{ homePickerArtworks.length }}</strong>
-          <small>matches</small>
+          <small>{{ t('matches') }}</small>
         </span>
       </div>
       <div v-if="homePickerArtworks.length === 0" class="empty">
         <Icon name="lucide:inbox" />
-        <p>没有匹配的作品。先去 Upload 上传，或调整筛选。</p>
+        <p>{{ t('noPickerMatches') }}</p>
       </div>
       <ul v-else class="picker-grid">
         <li
@@ -382,15 +388,15 @@ function onPickerCardClick(id: string) {
           @click="onPickerCardClick(a.id)"
         >
           <div class="picker-thumb">
-            <img :src="a.url" :alt="a.titleEn || a.seriesNameEn">
+            <img :src="a.url" :alt="localizedArtworkTitle(a, localizedSeriesName(a))">
             <span v-if="pickedIds.has(a.id)" class="picker-badge">
               <Icon name="lucide:check" />
               <em>{{ pickedLabel() }}</em>
             </span>
           </div>
           <div class="picker-info">
-            <strong>{{ a.titleEn || a.seriesNameEn }}</strong>
-            <small>{{ a.seriesNameZh || a.seriesNameEn }} · {{ categoryLabel(a.categoryId) }}</small>
+            <strong>{{ localizedArtworkTitle(a, localizedSeriesName(a)) }}</strong>
+            <small>{{ localizedSeriesName(a) }} · {{ categoryLabel(a.primaryCategoryId) }}</small>
           </div>
         </li>
       </ul>

@@ -78,6 +78,7 @@ function placeArtwork(texture: THREE.Texture, scene: THREE.Scene, orbitState: Or
   const height = texture.image.height
 
   const scale = 2.7
+  const orbitBaseY = -0.32
 
   const planeGeometry = createRoundedRectangleWithThickness(scale, height / width * scale, 0.2)
   const planeMaterial = new THREE.MeshBasicMaterial({ map: texture })
@@ -88,6 +89,7 @@ function placeArtwork(texture: THREE.Texture, scene: THREE.Scene, orbitState: Or
   plane.rotation.z = angleInRadians
   plane.position.z = Math.cos(Math.PI * 2 * delta) * 10
   plane.position.x = Math.sin(Math.PI * 2 * delta) * 20
+  plane.position.y = orbitBaseY
   scene.add(plane)
 
   function animate(time: number) {
@@ -95,7 +97,7 @@ function placeArtwork(texture: THREE.Texture, scene: THREE.Scene, orbitState: Or
     const orbitProgress = delta + time / 60_000 + orbitState.offset
     plane.position.z = Math.cos(Math.PI * 2 * orbitProgress) * 5
     plane.position.x = Math.sin(Math.PI * 2 * orbitProgress) * 10
-    plane.position.y = Math.sin(Math.PI * 2 * (delta + time / 5000 + orbitState.offset)) * 0.2
+    plane.position.y = orbitBaseY + Math.sin(Math.PI * 2 * (delta + time / 5000 + orbitState.offset)) * 0.16
     plane.rotation.y = orbitState.cardYaw
   }
   animate(0)
@@ -158,7 +160,7 @@ onMounted(async () => {
     }
   }
 
-  camera.position.copy(new THREE.Vector3(-4, -1.25, 9))
+  camera.position.copy(new THREE.Vector3(-4, -0.9, 9))
   camera.rotation.y = 180
 
   const orbitOffsetPerPixel = 0.00004

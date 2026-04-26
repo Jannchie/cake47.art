@@ -36,6 +36,13 @@
       "when": 1777204814552,
       "tag": "0004_merge_fan_works_category",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1777300000000,
+      "tag": "0005_artwork_series_links",
+      "breakpoints": true
     }
   ]
 }
