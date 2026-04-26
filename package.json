@@ -5,6 +5,11 @@
   "packageManager": "pnpm@10.13.1+sha512.37ebf1a5c7a30d5fabe0c5df44ee8da4c965ca0c5af3dbab28c3a1681b70a256218d05c81c9c0dcf767ef6b8551eb5b960042b9ed4300c59242336377e01cfad",
   "scripts": {
     "build": "nuxt build",
+    "build:cloudflare": "NITRO_PRESET=cloudflare_module nuxt build",
+    "db:generate": "nuxt db generate",
+    "db:migrate": "nuxt db migrate",
+    "db:migrate:production": "NUXT_HUB_DB_DRIVER=d1-http nuxt db migrate",
+    "deploy:cloudflare": "pnpm build:cloudflare && wrangler deploy --config .output/server/wrangler.json --keep-vars",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
