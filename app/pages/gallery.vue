@@ -585,7 +585,7 @@ watch(() => route.query.category, () => {
           :class="{ 'is-active': !activeCategory }"
           @click="applyFilter({ category: null, series: null })"
         >
-          <span class="index-item-num">00</span>
+          <span class="index-item-num">01</span>
           <span class="index-item-label">{{ copy.allCategories }}</span>
           <span class="index-item-count">{{ allArtworkCount }}</span>
         </button>
@@ -597,7 +597,7 @@ watch(() => route.query.category, () => {
           :class="{ 'is-active': activeCategory === cat.id }"
           @click="applyFilter({ category: activeCategory === cat.id ? null : cat.id, series: null })"
         >
-          <span class="index-item-num">{{ String(idx + 1).padStart(2, '0') }}</span>
+          <span class="index-item-num">{{ String(idx + 2).padStart(2, '0') }}</span>
           <span class="index-item-label">{{ localizedCategoryName(cat) }}</span>
           <span class="index-item-count">{{ categoryArtworkCount(cat.id) || '·' }}</span>
         </button>
@@ -1067,6 +1067,12 @@ watch(() => route.query.category, () => {
 .stage-image {
   position: relative;
   display: block;
+  animation: paint 0.55s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+@keyframes paint {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .stage-image::before,
@@ -1285,11 +1291,13 @@ watch(() => route.query.category, () => {
 
 .film-strip {
   --film-edge-space: max(1.2rem, calc(50% - 35px));
+  --film-thumb-active-height: 88px;
 
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem var(--film-edge-space);
+  min-height: calc(var(--film-thumb-active-height) + 1.2rem);
   overflow-x: auto;
   overflow-y: hidden;
   scroll-padding-inline: var(--film-edge-space);
