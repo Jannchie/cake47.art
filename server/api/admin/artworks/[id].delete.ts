@@ -1,3 +1,4 @@
+import { blob } from 'hub:blob'
 import { assertAdmin } from '~~/server/utils/auth'
 import { eq, tables, useDrizzle } from '~~/server/utils/drizzle'
 
@@ -20,7 +21,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await db.delete(tables.artworks).where(eq(tables.artworks.id, id)).run()
-  await hubBlob().del(row.storageKey).catch(() => {})
+  await blob.del(row.storageKey).catch(() => {})
 
   await db
     .update(tables.series)

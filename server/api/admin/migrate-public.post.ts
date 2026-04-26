@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { resolve as resolvePath } from 'node:path'
 import { assertAdmin } from '~~/server/utils/auth'
+import { blob } from 'hub:blob'
 import { eq, like, tables, useDrizzle } from '~~/server/utils/drizzle'
 import { shortId, slugify } from '~~/server/utils/ids'
 
@@ -17,7 +18,7 @@ type SeriesId =
   | 'code-geass'
   | 'commission'
 
-type CategoryId = 'game-fanart' | 'anime-fanart' | 'original-oc' | 'commercial-commission'
+type CategoryId = 'fan-works' | 'original-oc' | 'commercial-commission'
 
 interface SourceArtwork {
   series: SeriesId
@@ -48,22 +49,22 @@ const SOURCE_ARTWORKS: SourceArtwork[] = [
   { series: 'original', category: 'original-oc', src: '/images/snowcake47/original-oc/butterfly-portrait.jpg' },
   { series: 'original', category: 'original-oc', src: '/images/snowcake47/original-oc/white-hair-snake.jpg' },
   { series: 'original', category: 'original-oc', src: '/images/snowcake47/original-oc/snow-portrait.jpg', featured: true },
-  { series: 'danganronpa', category: 'game-fanart', src: '/images/snowcake47/game-fanart/danganronpa/chiaki-nanami.jpg' },
-  { series: 'danganronpa', category: 'game-fanart', src: '/images/snowcake47/game-fanart/danganronpa/tsumugi-shirogane.jpg' },
-  { series: 'danganronpa', category: 'game-fanart', src: '/images/snowcake47/game-fanart/danganronpa/sayaka-maizono.jpg' },
-  { series: 'danganronpa', category: 'game-fanart', src: '/images/snowcake47/game-fanart/danganronpa/kaede-akamatsu.jpg' },
-  { series: 'star-rail', category: 'game-fanart', src: '/images/snowcake47/game-fanart/honkai-star-rail/evernight.jpg', featured: true },
-  { series: 'star-rail', category: 'game-fanart', src: '/images/snowcake47/game-fanart/honkai-star-rail/march-7th.jpg' },
-  { series: 'star-rail', category: 'game-fanart', src: '/images/snowcake47/game-fanart/honkai-star-rail/Firefly.png', featured: true },
-  { series: 'star-rail', category: 'game-fanart', src: '/images/snowcake47/game-fanart/honkai-star-rail/Hysilens.png' },
-  { series: 'duet-night-abyss', category: 'game-fanart', src: '/images/snowcake47/game-fanart/duet-night-abyss/rebecca.jpg', featured: true },
-  { series: 'magical-girl-witch-trials', category: 'game-fanart', src: '/images/snowcake47/game-fanart/magical-girl-witch-trials/black-red-portrait.jpg' },
-  { series: 'onmyoji', category: 'game-fanart', src: '/images/snowcake47/game-fanart/onmyoji/HEVm68RbYAUmYxD.jpg', featured: true },
-  { series: 'vocaloid', category: 'anime-fanart', src: '/images/snowcake47/anime-fanart/vocaloid/hatsune-miku.jpg' },
-  { series: 'vocaloid', category: 'anime-fanart', src: '/images/snowcake47/anime-fanart/vocaloid/racing-miku.jpg', featured: true },
-  { series: 'sousou-no-frieren', category: 'anime-fanart', src: '/images/snowcake47/anime-fanart/sousou-no-frieren/flamme.jpg' },
-  { series: 'sousou-no-frieren', category: 'anime-fanart', src: '/images/snowcake47/anime-fanart/sousou-no-frieren/red-dress-portrait.jpg', featured: true },
-  { series: 'code-geass', category: 'anime-fanart', src: '/images/snowcake47/anime-fanart/code-geass/euphemia-good-night.jpg', featured: true },
+  { series: 'danganronpa', category: 'fan-works', src: '/images/snowcake47/game-fanart/danganronpa/chiaki-nanami.jpg' },
+  { series: 'danganronpa', category: 'fan-works', src: '/images/snowcake47/game-fanart/danganronpa/tsumugi-shirogane.jpg' },
+  { series: 'danganronpa', category: 'fan-works', src: '/images/snowcake47/game-fanart/danganronpa/sayaka-maizono.jpg' },
+  { series: 'danganronpa', category: 'fan-works', src: '/images/snowcake47/game-fanart/danganronpa/kaede-akamatsu.jpg' },
+  { series: 'star-rail', category: 'fan-works', src: '/images/snowcake47/game-fanart/honkai-star-rail/evernight.jpg', featured: true },
+  { series: 'star-rail', category: 'fan-works', src: '/images/snowcake47/game-fanart/honkai-star-rail/march-7th.jpg' },
+  { series: 'star-rail', category: 'fan-works', src: '/images/snowcake47/game-fanart/honkai-star-rail/Firefly.png', featured: true },
+  { series: 'star-rail', category: 'fan-works', src: '/images/snowcake47/game-fanart/honkai-star-rail/Hysilens.png' },
+  { series: 'duet-night-abyss', category: 'fan-works', src: '/images/snowcake47/game-fanart/duet-night-abyss/rebecca.jpg', featured: true },
+  { series: 'magical-girl-witch-trials', category: 'fan-works', src: '/images/snowcake47/game-fanart/magical-girl-witch-trials/black-red-portrait.jpg' },
+  { series: 'onmyoji', category: 'fan-works', src: '/images/snowcake47/game-fanart/onmyoji/HEVm68RbYAUmYxD.jpg', featured: true },
+  { series: 'vocaloid', category: 'fan-works', src: '/images/snowcake47/anime-fanart/vocaloid/hatsune-miku.jpg' },
+  { series: 'vocaloid', category: 'fan-works', src: '/images/snowcake47/anime-fanart/vocaloid/racing-miku.jpg', featured: true },
+  { series: 'sousou-no-frieren', category: 'fan-works', src: '/images/snowcake47/anime-fanart/sousou-no-frieren/flamme.jpg' },
+  { series: 'sousou-no-frieren', category: 'fan-works', src: '/images/snowcake47/anime-fanart/sousou-no-frieren/red-dress-portrait.jpg', featured: true },
+  { series: 'code-geass', category: 'fan-works', src: '/images/snowcake47/anime-fanart/code-geass/euphemia-good-night.jpg', featured: true },
   { series: 'commission', category: 'commercial-commission', src: '/images/snowcake47/commercial-commission/blue-accent-portrait.jpg' },
   { series: 'commission', category: 'commercial-commission', src: '/images/snowcake47/commercial-commission/blue-white-mage.jpg', featured: true },
   { series: 'commission', category: 'commercial-commission', src: '/images/snowcake47/commercial-commission/wisteria-twins.jpg' },
@@ -82,8 +83,7 @@ const SOURCE_ARTWORKS: SourceArtwork[] = [
 
 const HOME_SLOT_DEFAULTS: Record<string, string> = {
   'hero': '/images/snowcake47/game-fanart/onmyoji/HEVm68RbYAUmYxD.jpg',
-  'category.game-fanart': '/images/snowcake47/game-fanart/magical-girl-witch-trials/black-red-portrait.jpg',
-  'category.anime-fanart': '/images/snowcake47/anime-fanart/code-geass/euphemia-good-night.jpg',
+  'category.fan-works': '/images/snowcake47/game-fanart/magical-girl-witch-trials/black-red-portrait.jpg',
   'category.original-oc': '/images/snowcake47/original-oc/butterfly-portrait.jpg',
   'category.commercial-commission': '/images/snowcake47/commercial-commission/red-crown-portrait.jpg',
   'ekac.0': '/images/snowcake47/original-oc/Ekac/Ekac-1.png',
@@ -165,7 +165,6 @@ function titleFromSrc(src: string): string {
 export default defineEventHandler(async (event) => {
   assertAdmin(event)
   const db = useDrizzle()
-  const blob = hubBlob()
 
   const summary = {
     series: { created: 0, existing: 0 },

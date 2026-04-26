@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { and, asc, desc, eq, tables, useDrizzle } from '~~/server/utils/drizzle'
+import { versionBlobUrl } from '~~/server/utils/blob-url'
 
 const querySchema = z.object({
   category: z.string().optional(),
@@ -11,16 +12,24 @@ const querySchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 })
 
+function normalizeCategoryId(value: string | undefined) {
+  if (value === 'game-fanart' || value === 'anime-fanart') {
+    return 'fan-works'
+  }
+  return value
+}
+
 export default defineEventHandler(async (event) => {
   const query = await getValidatedQuery(event, querySchema.parse)
   const db = useDrizzle()
+  const category = normalizeCategoryId(query.category)
 
   const conditions = []
   if (query.series) {
     conditions.push(eq(tables.series.slug, query.series))
   }
-  if (query.category) {
-    conditions.push(eq(tables.series.categoryId, query.category))
+  if (category) {
+    conditions.push(eq(tables.series.categoryId, category))
   }
   if (query.featured === '1' || query.featured === 'true') {
     conditions.push(eq(tables.artworks.featured, true))
@@ -37,6 +46,7 @@ export default defineEventHandler(async (event) => {
       descriptionEn: tables.artworks.descriptionEn,
       descriptionJa: tables.artworks.descriptionJa,
       url: tables.artworks.url,
+      sizeBytes: tables.artworks.sizeBytes,
       width: tables.artworks.width,
       height: tables.artworks.height,
       mimeType: tables.artworks.mimeType,
@@ -62,7 +72,10 @@ export default defineEventHandler(async (event) => {
     .all()
 
   return {
-    items: rows,
+    items: rows.map(row => ({
+      ...row,
+      url: versionBlobUrl(row.url, row.sizeBytes),
+    })),
     pagination: {
       limit: query.limit,
       offset: query.offset,

@@ -1,27 +1,32 @@
-import type { Locale } from '~/utils/useLocale'
+import { DEFAULT_LOCALE, LOCALES, normalizeLocale, type Locale } from '~/utils/useLocale'
 
-const LOCALES: Locale[] = ['zh-CN', 'en', 'ja']
-
-function isLocale(value: string | undefined): value is Locale {
-  return !!value && (LOCALES as string[]).includes(value)
+function readQueryLocale(value: unknown): Locale | null {
+  return normalizeLocale(Array.isArray(value) ? value[0] : value)
 }
 
 export function useLocaleState() {
-  const cookie = useCookie<Locale>('locale', { default: () => 'en', watch: true })
+  const cookie = useCookie<Locale>('locale', { default: () => DEFAULT_LOCALE, watch: true })
   const route = useRoute()
-  const queryLang = computed(() => {
-    const value = route.query.lang
-    if (Array.isArray(value)) {
-      return isLocale(value[0]) ? value[0] : null
-    }
-    return isLocale(value as string | undefined) ? (value as Locale) : null
-  })
+  const routeLocale = computed(() => readQueryLocale(route.params.locale))
+  const queryLang = computed(() => readQueryLocale(route.query.lang))
 
-  const locale = computed<Locale>(() => queryLang.value ?? cookie.value ?? 'en')
+  const locale = computed<Locale>(() => routeLocale.value ?? queryLang.value ?? normalizeLocale(cookie.value) ?? DEFAULT_LOCALE)
+
+  watch(locale, (next) => {
+    cookie.value = next
+  }, { immediate: true })
 
   function setLocale(next: Locale) {
     cookie.value = next
     const router = useRouter()
+    if (routeLocale.value) {
+      const segments = route.path.split('/')
+      segments[1] = next
+      const query = { ...route.query }
+      delete query.lang
+      router.replace({ path: segments.join('/'), query, hash: route.hash })
+      return
+    }
     router.replace({ query: { ...route.query, lang: next } })
   }
 

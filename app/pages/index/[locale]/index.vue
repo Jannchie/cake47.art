@@ -5,7 +5,7 @@ import type { Locale } from '~/utils/useLocale'
 setHtmlLangByLocale()
 setSeoMetaByLocale()
 
-const locale = useLocale()
+const { locale } = useLocaleState()
 
 const copyByLocale: Record<Locale, {
   navWorks: string
@@ -14,6 +14,7 @@ const copyByLocale: Record<Locale, {
   navEkac: string
   navCollection: string
   navArchive: string
+  brandSubtitle: string
   works: string
   collection: string
   profile: string
@@ -22,14 +23,27 @@ const copyByLocale: Record<Locale, {
   open: string
   ekac: string
   scrollCue: string
+  heroStudio: string
+  marqueeIllustration: string
+  marqueeCharacterDesign: string
+  marqueeArtist: string
+  marqueeSince: string
+  sectionProfile: string
+  sectionWorks: string
+  sectionEkac: string
+  sectionCollection: string
+  sectionContact: string
+  featured: string
+  footerCredit: string
 }> = {
   'zh-CN': {
-    navWorks: 'Works',
-    navProfile: 'Profile',
-    navContact: 'Contact',
+    navWorks: '作品',
+    navProfile: '关于',
+    navContact: '联络',
     navEkac: 'Ekac',
-    navCollection: 'Collection',
+    navCollection: '创作方向',
     navArchive: '作品集',
+    brandSubtitle: 'snowcake47 ✦ 私期',
     works: '作品',
     collection: '创作方向',
     profile: '关于私期',
@@ -38,6 +52,18 @@ const copyByLocale: Record<Locale, {
     open: '前往',
     ekac: 'Ekac',
     scrollCue: '向下浏览',
+    heroStudio: '私期的画室',
+    marqueeIllustration: '插画',
+    marqueeCharacterDesign: '角色设计',
+    marqueeArtist: '私期',
+    marqueeSince: '2017 起',
+    sectionProfile: '关于',
+    sectionWorks: '作品',
+    sectionEkac: 'Ekac',
+    sectionCollection: '创作方向',
+    sectionContact: '联络',
+    featured: '主推',
+    footerCredit: 'snowcake47 / 私期',
   },
   en: {
     navWorks: 'Works',
@@ -46,6 +72,7 @@ const copyByLocale: Record<Locale, {
     navEkac: 'Ekac',
     navCollection: 'Collection',
     navArchive: 'Gallery',
+    brandSubtitle: 'snowcake47 ✦ Shiki',
     works: 'Works',
     collection: 'Collection',
     profile: 'About snowcake47',
@@ -54,14 +81,27 @@ const copyByLocale: Record<Locale, {
     open: 'visit',
     ekac: 'Ekac',
     scrollCue: 'Scroll',
+    heroStudio: 'snowcake47 Studio',
+    marqueeIllustration: 'Illustration',
+    marqueeCharacterDesign: 'Character Design',
+    marqueeArtist: 'Shiki',
+    marqueeSince: 'Since 2017',
+    sectionProfile: 'Profile',
+    sectionWorks: 'Works',
+    sectionEkac: 'Ekac',
+    sectionCollection: 'Collection',
+    sectionContact: 'Contact',
+    featured: 'Featured',
+    footerCredit: 'snowcake47 / Shiki',
   },
   ja: {
-    navWorks: 'Works',
-    navProfile: 'Profile',
-    navContact: 'Contact',
+    navWorks: '作品',
+    navProfile: 'プロフィール',
+    navContact: 'コンタクト',
     navEkac: 'Ekac',
-    navCollection: 'Collection',
+    navCollection: 'カテゴリ',
     navArchive: '作品集',
+    brandSubtitle: 'snowcake47 ✦ 私期',
     works: '作品',
     collection: 'カテゴリ',
     profile: '私期について',
@@ -70,10 +110,22 @@ const copyByLocale: Record<Locale, {
     open: 'ひらく',
     ekac: 'Ekac',
     scrollCue: 'スクロール',
+    heroStudio: '私期の画室',
+    marqueeIllustration: 'イラスト',
+    marqueeCharacterDesign: 'キャラクターデザイン',
+    marqueeArtist: '私期',
+    marqueeSince: '2017年から',
+    sectionProfile: 'プロフィール',
+    sectionWorks: '作品',
+    sectionEkac: 'Ekac',
+    sectionCollection: 'カテゴリ',
+    sectionContact: 'コンタクト',
+    featured: '注目作品',
+    footerCredit: 'snowcake47 / 私期',
   },
 }
 
-const copy = computed(() => copyByLocale[locale])
+const copy = computed(() => copyByLocale[locale.value])
 
 const localeLinks = [
   { label: 'JP', full: '日本語', href: '/ja' },
@@ -129,10 +181,10 @@ const { data: layoutData } = await useFetch<{ slots: Record<string, HomeSlotPayl
 })
 
 function pickByLocale(zh: string, en: string, ja: string): string {
-  if (locale === 'zh-CN') {
+  if (locale.value === 'zh-CN') {
     return zh || en
   }
-  if (locale === 'ja') {
+  if (locale.value === 'ja') {
     return ja || en
   }
   return en || zh
@@ -153,7 +205,7 @@ function resolveSlot(slotKey: string): SlotRender | null {
 }
 
 function categoryText(id: ArtworkCategoryId): string {
-  return artworkCategories.find(c => c.id === id)?.label[locale] ?? id
+  return artworkCategories.find(c => c.id === id)?.label[locale.value] ?? id
 }
 
 const heroFeature = computed(() => resolveSlot('hero'))
@@ -178,9 +230,91 @@ const BRAND_AVATAR_URL = '/api/files/brand/avatar.jpg'
 
 const mounted = ref(false)
 const navScrolled = ref(false)
+let sectionScrollFrame: number | null = null
+let revealObserver: IntersectionObserver | null = null
+let previousScrollRestoration: ScrollRestoration | null = null
 
 function handleNavScroll() {
   navScrolled.value = window.scrollY > 4
+}
+
+function easeInOutCubic(progress: number) {
+  return progress < 0.5
+    ? 4 * progress * progress * progress
+    : 1 - Math.pow(-2 * progress + 2, 3) / 2
+}
+
+function sectionTargetFromHash(hash: string) {
+  if (!hash.startsWith('#')) {
+    return null
+  }
+  const id = decodeURIComponent(hash.slice(1))
+  return id ? document.getElementById(id) : null
+}
+
+function cancelSectionScroll() {
+  if (sectionScrollFrame !== null) {
+    cancelAnimationFrame(sectionScrollFrame)
+    sectionScrollFrame = null
+  }
+}
+
+function updateHashWithoutJump(hash: string) {
+  if (window.location.hash === hash) {
+    return
+  }
+  window.history.pushState(null, '', `${window.location.pathname}${window.location.search}${hash}`)
+}
+
+function scrollToSection(hash: string, updateHash = true) {
+  const target = sectionTargetFromHash(hash)
+  if (!target) {
+    return
+  }
+
+  cancelSectionScroll()
+
+  if (updateHash) {
+    updateHashWithoutJump(hash)
+  }
+
+  const startTop = window.scrollY
+  const targetTop = Math.max(0, target.getBoundingClientRect().top + window.scrollY)
+  const distance = targetTop - startTop
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || Math.abs(distance) < 2) {
+    window.scrollTo({ top: targetTop, left: window.scrollX, behavior: 'auto' })
+    return
+  }
+
+  const duration = 820
+  const startTime = performance.now()
+
+  function step(now: number) {
+    const progress = Math.min(1, (now - startTime) / duration)
+    const eased = easeInOutCubic(progress)
+    window.scrollTo({ top: startTop + distance * eased, left: window.scrollX, behavior: 'auto' })
+
+    if (progress < 1) {
+      sectionScrollFrame = requestAnimationFrame(step)
+    }
+    else {
+      sectionScrollFrame = null
+    }
+  }
+
+  sectionScrollFrame = requestAnimationFrame(step)
+}
+
+function handleSectionLinkClick(event: MouseEvent, hash: string) {
+  event.preventDefault()
+  scrollToSection(hash)
+}
+
+function handleHashNavigation() {
+  if (window.location.hash) {
+    scrollToSection(window.location.hash, false)
+  }
 }
 
 function setupReveal() {
@@ -203,43 +337,64 @@ function setupReveal() {
 onMounted(() => {
   mounted.value = true
 
+  if ('scrollRestoration' in window.history) {
+    previousScrollRestoration = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
+  }
+
   handleNavScroll()
   window.addEventListener('scroll', handleNavScroll, { passive: true })
+  window.addEventListener('popstate', handleHashNavigation)
+  window.addEventListener('hashchange', handleHashNavigation)
+  window.addEventListener('wheel', cancelSectionScroll, { passive: true })
+  window.addEventListener('touchstart', cancelSectionScroll, { passive: true })
 
-  const observer = setupReveal()
+  revealObserver = setupReveal()
 
-  onBeforeUnmount(() => {
-    window.removeEventListener('scroll', handleNavScroll)
-    observer.disconnect()
-  })
+  if (window.location.hash) {
+    requestAnimationFrame(() => handleHashNavigation())
+  }
+})
+
+onBeforeUnmount(() => {
+  cancelSectionScroll()
+  window.removeEventListener('scroll', handleNavScroll)
+  window.removeEventListener('popstate', handleHashNavigation)
+  window.removeEventListener('hashchange', handleHashNavigation)
+  window.removeEventListener('wheel', cancelSectionScroll)
+  window.removeEventListener('touchstart', cancelSectionScroll)
+  revealObserver?.disconnect()
+  if (previousScrollRestoration) {
+    window.history.scrollRestoration = previousScrollRestoration
+  }
 })
 </script>
 
 <template>
   <main class="portfolio-shell" :class="{ 'is-mounted': mounted }">
-    <LoadingOverlay />
+    <LoadingOverlay :subtitle="copy.heroStudio" />
     <BackgroundOrnament />
     <div class="grain-overlay" aria-hidden="true" />
 
     <header class="site-nav" :class="{ 'is-scrolled': navScrolled }">
-      <NuxtLink href="/" class="brand">
+      <NuxtLink :to="`/${locale}`" class="brand">
         <span class="brand-mark">
           <img :src="BRAND_AVATAR_URL" alt="snowcake47">
           <span class="brand-mark-ring" aria-hidden="true" />
         </span>
         <span class="brand-text">
           <strong>cake47.art</strong>
-          <small>snowcake47 ✦ 私期</small>
+          <small>{{ copy.brandSubtitle }}</small>
         </span>
       </NuxtLink>
 
       <nav class="site-nav-links">
-        <a href="#profile"><em>01</em>{{ copy.navProfile }}</a>
-        <a href="#works"><em>02</em>{{ copy.navWorks }}</a>
-        <a href="#ekac"><em>03</em>{{ copy.navEkac }}</a>
-        <a href="#collection"><em>04</em>{{ copy.navCollection }}</a>
-        <a href="#contact"><em>05</em>{{ copy.navContact }}</a>
-        <NuxtLink to="/gallery" class="nav-archive"><em>06</em>{{ copy.navArchive }}<span class="nav-archive-arrow" aria-hidden="true">→</span></NuxtLink>
+        <a href="#profile" @click="handleSectionLinkClick($event, '#profile')"><em>01</em>{{ copy.navProfile }}</a>
+        <a href="#works" @click="handleSectionLinkClick($event, '#works')"><em>02</em>{{ copy.navWorks }}</a>
+        <a href="#ekac" @click="handleSectionLinkClick($event, '#ekac')"><em>03</em>{{ copy.navEkac }}</a>
+        <a href="#collection" @click="handleSectionLinkClick($event, '#collection')"><em>04</em>{{ copy.navCollection }}</a>
+        <a href="#contact" @click="handleSectionLinkClick($event, '#contact')"><em>05</em>{{ copy.navContact }}</a>
+        <NuxtLink :to="`/${locale}/gallery`" class="nav-archive"><em>06</em>{{ copy.navArchive }}<span class="nav-archive-arrow" aria-hidden="true">→</span></NuxtLink>
       </nav>
 
       <div class="locale-switcher">
@@ -262,7 +417,7 @@ onMounted(() => {
       </ClientOnly>
 
       <div class="hero-overlay">
-        <a href="#profile" class="hero-scroll-cue" :aria-label="copy.scrollCue">
+        <a href="#profile" class="hero-scroll-cue" :aria-label="copy.scrollCue" @click="handleSectionLinkClick($event, '#profile')">
           <span>{{ copy.scrollCue }}</span>
           <svg viewBox="0 0 18 32" aria-hidden="true">
             <path d="M9 2v24M2 20l7 7 7-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
@@ -273,7 +428,7 @@ onMounted(() => {
       <div class="hero-marquee" aria-hidden="true">
         <div class="hero-marquee-track">
           <span v-for="i in 12" :key="i">
-            <em>✟</em> ILLUSTRATION <em>✟</em> CHARACTER DESIGN <em>✟</em> SNOWCAKE47 <em>✟</em> 私期 <em>✟</em> SINCE 2017
+            <em>✟</em> {{ copy.marqueeIllustration }} <em>✟</em> {{ copy.marqueeCharacterDesign }} <em>✟</em> SNOWCAKE47 <em>✟</em> {{ copy.marqueeArtist }} <em>✟</em> {{ copy.marqueeSince }}
           </span>
         </div>
       </div>
@@ -293,16 +448,15 @@ onMounted(() => {
           </span>
           <span class="hero-title-jp">
             <span class="hero-title-jp-deco" aria-hidden="true">◆</span>
-            <span class="hero-title-jp-text">私期 の 画室</span>
+            <span class="hero-title-jp-text" :class="{ 'is-latin': locale === 'en' }">{{ copy.heroStudio }}</span>
             <span class="hero-title-jp-deco" aria-hidden="true">◆</span>
           </span>
         </h1>
       </div>
     </section>
 
-    <SectionFlow variant="sweep" />
-
     <section id="profile" class="profile">
+      <SectionFlow variant="sweep" />
       <div class="profile-grid">
         <div class="profile-portrait" data-reveal>
           <div class="profile-portrait-frame">
@@ -311,7 +465,7 @@ onMounted(() => {
         </div>
 
         <div class="profile-content" data-reveal style="--reveal-delay: 120ms">
-          <span class="section-num">01 / Profile</span>
+          <span class="section-num">01 / {{ copy.sectionProfile }}</span>
           <h2 class="section-title">{{ copy.profile }}</h2>
           <p class="profile-bio">
             {{ copy.profileBio }}
@@ -320,11 +474,10 @@ onMounted(() => {
       </div>
     </section>
 
-    <SectionFlow variant="corner" />
-
     <section id="works" class="works">
+      <SectionFlow variant="corner" />
       <div class="section-head" data-reveal>
-        <span class="section-num">02 / Works</span>
+        <span class="section-num">02 / {{ copy.sectionWorks }}</span>
         <h2 class="section-title">
           {{ copy.works }}
           <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
@@ -354,7 +507,7 @@ onMounted(() => {
         <header class="work-feature-meta">
           <span class="work-feature-tag">
             <span class="work-feature-tag-mark">★</span>
-            Featured
+            {{ copy.featured }}
           </span>
           <span class="work-feature-divider" aria-hidden="true" />
           <span class="work-feature-series">{{ categoryText(heroFeature.category) }}</span>
@@ -362,7 +515,7 @@ onMounted(() => {
         </header>
 
         <div class="work-feature-frame">
-          <img :src="heroFeature.src" :alt="heroFeature.seriesLabel" loading="lazy" decoding="async">
+          <img :src="heroFeature.src" :alt="heroFeature.seriesLabel" decoding="async">
         </div>
 
         <figcaption class="work-feature-caption">
@@ -383,7 +536,7 @@ onMounted(() => {
           :style="{ '--reveal-delay': `${(index % 3) * 90}ms` }"
         >
           <div class="work-frame">
-            <img :src="artwork.src" :alt="artwork.seriesLabel" loading="lazy" decoding="async">
+            <img :src="artwork.src" :alt="artwork.seriesLabel" decoding="async">
           </div>
           <figcaption class="work-caption">
             <strong>{{ artwork.seriesLabel }}</strong>
@@ -393,11 +546,10 @@ onMounted(() => {
       </div>
     </section>
 
-    <SectionFlow variant="split" />
-
     <section id="ekac" class="ekac">
+      <SectionFlow variant="split" />
       <div class="section-head" data-reveal>
-        <span class="section-num">03 / Ekac</span>
+        <span class="section-num">03 / {{ copy.sectionEkac }}</span>
         <h2 class="section-title">
           {{ copy.ekac }}
           <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
@@ -407,7 +559,7 @@ onMounted(() => {
       </div>
 
       <figure v-if="ekacArtworks[0]" class="ekac-main" data-reveal>
-        <img :src="ekacArtworks[0].src" :alt="copy.ekac" loading="lazy" decoding="async">
+        <img :src="ekacArtworks[0].src" :alt="copy.ekac" decoding="async">
       </figure>
 
       <div class="ekac-thumbs" data-reveal>
@@ -418,7 +570,6 @@ onMounted(() => {
           <img
             :src="artwork.src"
             :alt="copy.ekac"
-            loading="lazy"
             decoding="async"
             :style="{ objectPosition: artwork.objectPosition ?? '50% 22%' }"
           >
@@ -426,11 +577,10 @@ onMounted(() => {
       </div>
     </section>
 
-    <SectionFlow variant="cluster" mirror />
-
     <section id="collection" class="categories">
+      <SectionFlow variant="cluster" mirror />
       <div class="section-head" data-reveal>
-        <span class="section-num">04 / Collection</span>
+        <span class="section-num">04 / {{ copy.sectionCollection }}</span>
         <h2 class="section-title">
           {{ copy.collection }}
           <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
@@ -451,7 +601,6 @@ onMounted(() => {
             <img
               :src="item.artwork.src"
               :alt="item.artwork.seriesLabel"
-              loading="lazy"
               decoding="async"
               :style="{ objectPosition: item.artwork.objectPosition ?? '50% 18%' }"
             >
@@ -467,11 +616,10 @@ onMounted(() => {
       </div>
     </section>
 
-    <SectionFlow variant="mark" />
-
     <section id="contact" class="contact">
+      <SectionFlow variant="mark" />
       <div class="section-head" data-reveal>
-        <span class="section-num">05 / Contact</span>
+        <span class="section-num">05 / {{ copy.sectionContact }}</span>
         <h2 class="section-title">
           {{ copy.contact }}
           <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
@@ -506,7 +654,7 @@ onMounted(() => {
     <footer class="site-footer">
       <div class="site-footer-mark">
         <span>cake47.art</span>
-        <small>© {{ new Date().getFullYear() }} snowcake47 / 私期</small>
+        <small>© {{ new Date().getFullYear() }} {{ copy.footerCredit }}</small>
       </div>
       <div class="site-footer-deco" aria-hidden="true">
         ✦ ❅ ✦ ❅ ✦ ❅ ✦
@@ -870,6 +1018,11 @@ onMounted(() => {
   padding-left: 0.6em;
 }
 
+.hero-title-jp-text.is-latin {
+  letter-spacing: 0.16em;
+  padding-left: 0.16em;
+}
+
 .hero-title-jp-deco {
   display: inline-block;
   font-size: 0.55em;
@@ -927,11 +1080,35 @@ onMounted(() => {
 }
 
 /* ───── Sections ───── */
+.profile,
+.works,
+.ekac,
+.categories,
+.contact {
+  position: relative;
+  isolation: isolate;
+}
+
+.profile > *:not(.flow),
+.works > *:not(.flow),
+.ekac > *:not(.flow),
+.categories > *:not(.flow),
+.contact > *:not(.flow) {
+  position: relative;
+  z-index: 1;
+}
+
+.categories > .flow {
+  top: -90px;
+}
+
 .section-head {
   display: grid;
   gap: 1rem;
-  margin-bottom: 3rem;
+  margin: 0 auto 3rem;
   max-width: 720px;
+  justify-items: center;
+  text-align: center;
 }
 
 .section-num {

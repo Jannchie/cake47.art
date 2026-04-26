@@ -1,6 +1,8 @@
+import { useRouteLocale } from '~/utils/useLocale'
+
 export function setHtmlLangByLocale() {
-  const locale = useLocale()
-  useHead({
-    htmlAttrs: { lang: locale },
-  })
+  const locale = useRouteLocale()
+  useHead(() => ({
+    htmlAttrs: { lang: locale.value },
+  }))
 }

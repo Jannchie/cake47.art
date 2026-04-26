@@ -3,8 +3,7 @@ import type { Locale } from '~/utils/useLocale'
 type LocalizedText = Record<Locale, string>
 
 export type ArtworkCategoryId =
-  | 'game-fanart'
-  | 'anime-fanart'
+  | 'fan-works'
   | 'original-oc'
   | 'commercial-commission'
 
@@ -17,31 +16,17 @@ export interface ArtworkCategory {
 
 export const artworkCategories: ArtworkCategory[] = [
   {
-    id: 'game-fanart',
-    icon: 'lucide:gamepad-2',
+    id: 'fan-works',
+    icon: 'lucide:palette',
     label: {
-      'zh-CN': '游戏同人',
-      en: 'Game Fanart',
-      ja: 'ゲーム同人',
+      'zh-CN': '同人创作',
+      en: 'Fan Works',
+      ja: 'ファンアート',
     },
     description: {
-      'zh-CN': '游戏角色的同人插画与角色诠释。',
-      en: 'Fan illustrations and character studies for game titles.',
-      ja: 'ゲーム作品のファンアートとキャラクター表現。',
-    },
-  },
-  {
-    id: 'anime-fanart',
-    icon: 'lucide:film',
-    label: {
-      'zh-CN': '动漫同人',
-      en: 'Anime Fanart',
-      ja: 'アニメ同人',
-    },
-    description: {
-      'zh-CN': '动画、漫画与虚拟歌手相关作品。',
-      en: 'Works inspired by anime, manga, and virtual singers.',
-      ja: 'アニメ、漫画、バーチャルシンガー関連の作品。',
+      'zh-CN': '游戏、动画漫画、虚拟歌手等作品的二次创作。',
+      en: 'Fan works inspired by games, anime, manga, virtual singers, and other titles.',
+      ja: 'ゲーム、アニメ、漫画、ボカロなどを題材にしたファンアート。',
     },
   },
   {

@@ -1,3 +1,4 @@
+import { blob } from 'hub:blob'
 import { assertAdmin } from '~~/server/utils/auth'
 import { eq, tables, useDrizzle } from '~~/server/utils/drizzle'
 
@@ -18,7 +19,7 @@ export default defineEventHandler(async (event) => {
   if (artworksToDelete.length > 0) {
     const keys = artworksToDelete.map(a => a.storageKey).filter(Boolean)
     if (keys.length > 0) {
-      await hubBlob().del(keys).catch(() => {})
+      await blob.del(keys).catch(() => {})
     }
   }
 

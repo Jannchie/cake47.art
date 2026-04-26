@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Locale } from '~/utils/useLocale'
 
+definePageMeta({ middleware: ['i18n'] })
+
 interface CategoryRow {
   id: string
   icon: string
@@ -50,15 +52,28 @@ interface ArtworkRow {
   objectPosition: string | null
   featured: boolean
   sortOrder: number
-  createdAt: number
+  createdAt: number | string
 }
 
 const { locale, setLocale, locales } = useLocaleState()
+const route = useRoute()
 
 const localeMeta: Record<Locale, { label: string }> = {
   'zh-CN': { label: 'CN' },
   'en': { label: 'EN' },
   'ja': { label: 'JP' },
+}
+
+const galleryTitle: Record<Locale, string> = {
+  'zh-CN': '作品集 | cake47.art',
+  en: 'Gallery | cake47.art',
+  ja: '作品集 | cake47.art',
+}
+
+const galleryDescription: Record<Locale, string> = {
+  'zh-CN': 'snowcake47 / 私期的作品集，按分类和系列浏览插画作品。',
+  en: 'Browse snowcake47 illustration works by category and series.',
+  ja: 'snowcake47 / 私期のイラスト作品をカテゴリとシリーズで閲覧できます。',
 }
 
 const copy = computed(() => {
@@ -69,6 +84,9 @@ const copy = computed(() => {
     empty: string
     metaCreated: string
     countOf: string
+    previous: string
+    next: string
+    brandSubtitle: string
   }> = {
     'zh-CN': {
       backHome: '返回',
@@ -77,6 +95,9 @@ const copy = computed(() => {
       empty: '暂无作品',
       metaCreated: '收录',
       countOf: '/',
+      previous: '上一张',
+      next: '下一张',
+      brandSubtitle: 'snowcake47 ✦ 私期',
     },
     en: {
       backHome: 'Back',
@@ -85,6 +106,9 @@ const copy = computed(() => {
       empty: 'No works yet',
       metaCreated: 'Filed',
       countOf: '/',
+      previous: 'Previous artwork',
+      next: 'Next artwork',
+      brandSubtitle: 'snowcake47 ✦ Shiki',
     },
     ja: {
       backHome: '戻る',
@@ -93,25 +117,33 @@ const copy = computed(() => {
       empty: '作品はまだありません',
       metaCreated: '収録',
       countOf: '/',
+      previous: '前の作品',
+      next: '次の作品',
+      brandSubtitle: 'snowcake47 ✦ 私期',
     },
   }
   return map[locale.value]
 })
 
-useHead(() => ({
-  htmlAttrs: { lang: locale.value },
-  title: 'cake47.art',
-}))
-
-useSeoMeta({
-  description: () => 'cake47.art / snowcake47',
+setHtmlLangByLocale()
+setSeoMetaByLocale({
+  path: '/gallery',
+  title: galleryTitle,
+  description: galleryDescription,
 })
 
 const { data: indexData } = await useFetch('/api/gallery')
 const categories = computed<CategoryRow[]>(() => indexData.value?.categories ?? [])
 const series = computed<SeriesRow[]>(() => indexData.value?.series ?? [])
+const categoryArtworkCounts = computed(() => {
+  const counts = new Map<string, number>()
+  for (const item of series.value) {
+    counts.set(item.categoryId, (counts.get(item.categoryId) ?? 0) + item.artworkCount)
+  }
+  return counts
+})
+const allArtworkCount = computed(() => series.value.reduce((sum, item) => sum + item.artworkCount, 0))
 
-const route = useRoute()
 const router = useRouter()
 
 function readQueryString(value: unknown): string | null {
@@ -121,7 +153,14 @@ function readQueryString(value: unknown): string | null {
   return typeof value === 'string' ? value : null
 }
 
-const activeCategory = computed(() => readQueryString(route.query.category))
+function normalizeCategoryId(value: string | null): string | null {
+  if (value === 'game-fanart' || value === 'anime-fanart') {
+    return 'fan-works'
+  }
+  return value
+}
+
+const activeCategory = computed(() => normalizeCategoryId(readQueryString(route.query.category)))
 const activeSeries = computed(() => readQueryString(route.query.series))
 
 function applyFilter(patch: Record<string, string | null>) {
@@ -135,6 +174,14 @@ function applyFilter(patch: Record<string, string | null>) {
     }
   }
   router.replace({ query: next })
+}
+
+function normalizeLegacyCategoryQuery() {
+  const rawCategory = readQueryString(route.query.category)
+  const normalizedCategory = normalizeCategoryId(rawCategory)
+  if (rawCategory && normalizedCategory && rawCategory !== normalizedCategory) {
+    applyFilter({ category: normalizedCategory })
+  }
 }
 
 const visibleSeries = computed(() => {
@@ -168,6 +215,7 @@ const filmstripRef = ref<HTMLElement | null>(null)
 
 watch(artworks, () => {
   currentIndex.value = 0
+  scrollFilmstripToCurrent()
 })
 
 const currentArtwork = computed(() => artworks.value[currentIndex.value] ?? null)
@@ -206,7 +254,13 @@ function scrollFilmstripToCurrent() {
     if (!target) {
       return
     }
-    target.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+
+    const targetCenter = target.offsetLeft + target.offsetWidth / 2
+    const stripCenter = strip.clientWidth / 2
+    strip.scrollTo({
+      left: Math.max(0, targetCenter - stripCenter),
+      behavior: 'smooth',
+    })
   })
 }
 
@@ -263,7 +317,7 @@ function categoryById(id: string | null) {
 }
 
 function categoryArtworkCount(catId: string) {
-  return artworks.value.filter(a => a.categoryId === catId).length
+  return categoryArtworkCounts.value.get(catId) ?? 0
 }
 
 function formatDate(value: number | string | Date | null | undefined): string {
@@ -294,6 +348,7 @@ function onKeydown(event: KeyboardEvent) {
 
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
+  normalizeLegacyCategoryQuery()
   scrollFilmstripToCurrent()
 })
 
@@ -308,6 +363,10 @@ watch(activeCategory, (val) => {
       applyFilter({ series: null })
     }
   }
+})
+
+watch(() => route.query.category, () => {
+  normalizeLegacyCategoryQuery()
 })
 </script>
 
@@ -342,7 +401,7 @@ watch(activeCategory, (val) => {
         </span>
         <span class="index-brand-text">
           <strong>cake47.art</strong>
-          <small>snowcake47 ✦ 私期</small>
+          <small>{{ copy.brandSubtitle }}</small>
         </span>
       </NuxtLink>
 
@@ -355,7 +414,7 @@ watch(activeCategory, (val) => {
         >
           <span class="index-item-num">00</span>
           <span class="index-item-label">{{ copy.allCategories }}</span>
-          <span class="index-item-count">{{ totalCount }}</span>
+          <span class="index-item-count">{{ allArtworkCount }}</span>
         </button>
         <button
           v-for="(cat, idx) in categories"
@@ -416,7 +475,7 @@ watch(activeCategory, (val) => {
           v-if="totalCount > 1"
           type="button"
           class="stage-nav stage-nav-prev"
-          aria-label="previous"
+          :aria-label="copy.previous"
           @click="prev"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -427,7 +486,7 @@ watch(activeCategory, (val) => {
           v-if="totalCount > 1"
           type="button"
           class="stage-nav stage-nav-next"
-          aria-label="next"
+          :aria-label="copy.next"
           @click="next"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1013,12 +1072,15 @@ watch(activeCategory, (val) => {
 }
 
 .film-strip {
+  --film-edge-space: max(1.2rem, calc(50% - 35px));
+
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.6rem 1.2rem;
+  padding: 0.6rem var(--film-edge-space);
   overflow-x: auto;
   overflow-y: hidden;
+  scroll-padding-inline: var(--film-edge-space);
   scroll-behavior: smooth;
   scrollbar-width: none;
 }

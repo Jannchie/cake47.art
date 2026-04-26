@@ -1,5 +1,4 @@
 <script setup>
-import { RokuProvider } from '@roku-ui/vue'
 import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
 
@@ -25,9 +24,7 @@ useHead({
 </script>
 
 <template>
-  <RokuProvider>
-    <NuxtPage />
-  </RokuProvider>
+  <NuxtPage />
 </template>
 
 <style>

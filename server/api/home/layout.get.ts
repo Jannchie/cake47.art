@@ -1,5 +1,6 @@
 import { CAROUSEL_PREFIX, SELECTED_PREFIX } from '~~/shared/home-slots'
 import { asc, eq, tables, useDrizzle } from '~~/server/utils/drizzle'
+import { versionBlobUrl } from '~~/server/utils/blob-url'
 
 export default defineEventHandler(async () => {
   const db = useDrizzle()
@@ -9,6 +10,7 @@ export default defineEventHandler(async () => {
       slotKey: tables.homeSlots.slotKey,
       artworkId: tables.artworks.id,
       url: tables.artworks.url,
+      sizeBytes: tables.artworks.sizeBytes,
       categoryId: tables.series.categoryId,
       seriesId: tables.artworks.seriesId,
       seriesSlug: tables.series.slug,
@@ -33,6 +35,8 @@ export default defineEventHandler(async () => {
   const selected: typeof rows = []
   const carousel: typeof rows = []
   for (const row of rows) {
+    row.url = versionBlobUrl(row.url, row.sizeBytes)
+
     if (row.slotKey.startsWith(SELECTED_PREFIX)) {
       selected.push(row)
     }

@@ -52,7 +52,6 @@ CREATE TABLE `series` (
 CREATE UNIQUE INDEX `series_slug_unique` ON `series` (`slug`);
 --> statement-breakpoint
 INSERT INTO `categories` (`id`, `icon`, `label_zh`, `label_en`, `label_ja`, `description_zh`, `description_en`, `description_ja`, `sort_order`) VALUES
-('game-fanart', 'lucide:gamepad-2', '游戏同人', 'Game Fanart', 'ゲーム同人', '游戏角色的同人插画与角色诠释。', 'Fan illustrations and character studies for game titles.', 'ゲーム作品のファンアートとキャラクター表現。', 10),
-('anime-fanart', 'lucide:film', '动漫同人', 'Anime Fanart', 'アニメ同人', '动画、漫画与虚拟歌手相关作品。', 'Works inspired by anime, manga, and virtual singers.', 'アニメ、漫画、バーチャルシンガー関連の作品。', 20),
-('original-oc', 'lucide:sparkles', '原创 OC 角色', 'Original OC', 'オリジナル OC', '原创角色、生日图与个人创作。', 'Original characters, birthday pieces, and personal works.', 'オリジナルキャラクター、誕生日絵、個人制作。', 30),
-('commercial-commission', 'lucide:briefcase-business', '商单或委托', 'Commercial / Commission', '商業・依頼', '商稿、委托与可公开展示的样例。', 'Commercial work, commissions, and public samples.', '商業案件、依頼作品、公開可能なサンプル。', 40);
+('fan-works', 'lucide:palette', '同人创作', 'Fan Works', 'ファンアート', '游戏、动画漫画、虚拟歌手等作品的二次创作。', 'Fan works inspired by games, anime, manga, virtual singers, and other titles.', 'ゲーム、アニメ、漫画、ボカロなどを題材にしたファンアート。', 10),
+('original-oc', 'lucide:sparkles', '原创角色', 'Original Characters', 'オリジナルキャラクター', '原创角色、生日图与个人创作。', 'Original characters, birthday pieces, and personal works.', 'オリジナルキャラクター、誕生日絵、個人制作。', 20),
+('commercial-commission', 'lucide:briefcase-business', '商单或委托', 'Commercial / Commission', '商業・依頼', '商稿、委托与可公开展示的样例。', 'Commercial work, commissions, and public samples.', '商業案件、依頼作品、公開可能なサンプル。', 30);

@@ -2,6 +2,12 @@
 import * as THREE from 'three'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
+const props = withDefaults(defineProps<{
+  subtitle?: string
+}>(), {
+  subtitle: 'snowcake47 Studio',
+})
+
 const visible = ref(true)
 const fading = ref(false)
 const containerRef = ref<HTMLDivElement | null>(null)
@@ -535,7 +541,7 @@ onBeforeUnmount(() => {
         <div ref="containerRef" class="shader-canvas" aria-hidden="true" />
         <div class="wordmark">
           <h2>Snowcake47</h2>
-          <small>私期 &nbsp; の &nbsp; 画室</small>
+          <small>{{ props.subtitle }}</small>
         </div>
       </div>
     </div>

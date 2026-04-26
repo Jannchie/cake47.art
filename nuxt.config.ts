@@ -12,7 +12,7 @@ export default defineNuxtConfig({
   ],
   css: ['~/assets/css/main.css'],
   hub: {
-    database: true,
+    db: 'sqlite',
     blob: true,
   },
   nitro: {

@@ -1,3 +1,4 @@
+import { blob } from 'hub:blob'
 import { assertAdmin } from '~~/server/utils/auth'
 import { eq, tables, useDrizzle } from '~~/server/utils/drizzle'
 import { shortId } from '~~/server/utils/ids'
@@ -46,7 +47,7 @@ export default defineEventHandler(async (event) => {
   const ext = (file.name || '').split('.').pop()?.toLowerCase() ?? 'bin'
   const key = `gallery/${new Date().getFullYear()}/${shortId(16)}.${ext}`
 
-  const stored = await hubBlob().put(key, file, {
+  const stored = await blob.put(key, file, {
     contentType: file.type,
     addRandomSuffix: false,
   })
@@ -65,7 +66,7 @@ export default defineEventHandler(async (event) => {
     .run()
 
   if (existing.storageKey && existing.storageKey !== stored.pathname) {
-    await hubBlob().del(existing.storageKey).catch(() => {})
+    await blob.del(existing.storageKey).catch(() => {})
   }
 
   return {

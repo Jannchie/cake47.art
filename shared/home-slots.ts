@@ -6,9 +6,8 @@ export interface HomeSlotDef {
 
 export const HOME_SLOTS: HomeSlotDef[] = [
   { key: 'hero', group: 'hero', label: 'Hero / 主推作品' },
-  { key: 'category.game-fanart', group: 'category', label: 'Category · Game Fanart' },
-  { key: 'category.anime-fanart', group: 'category', label: 'Category · Anime Fanart' },
-  { key: 'category.original-oc', group: 'category', label: 'Category · Original OC' },
+  { key: 'category.fan-works', group: 'category', label: 'Category · Fan Works' },
+  { key: 'category.original-oc', group: 'category', label: 'Category · Original Characters' },
   { key: 'category.commercial-commission', group: 'category', label: 'Category · Commercial' },
   { key: 'ekac.0', group: 'ekac', label: 'Ekac · Hero' },
   { key: 'ekac.1', group: 'ekac', label: 'Ekac · Thumb 1' },

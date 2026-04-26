@@ -175,19 +175,6 @@ function onPickerCardClick(id: string) {
   assignHomeSlot(id)
 }
 
-function onPickerKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && showHomePicker.value) {
-    event.preventDefault()
-    showHomePicker.value = false
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('keydown', onPickerKeydown)
-})
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onPickerKeydown)
-})
 </script>
 
 <template>
@@ -356,67 +343,58 @@ onBeforeUnmount(() => {
       </section>
     </template>
 
-    <Transition name="fade">
-      <div v-if="showHomePicker" class="modal-shade" @click.self="showHomePicker = false">
-        <div class="modal modal-wide">
-          <header class="modal-head">
-            <h3>
-              选择作品 ·
-              <span v-if="homePickerMode?.type === 'slot'">{{ homePickerMode.slot }}</span>
-              <span v-else-if="homePickerMode?.type === 'append-selected'">追加到 Selected</span>
-              <span v-else-if="homePickerMode?.type === 'append-carousel'">追加到 Carousel</span>
-            </h3>
-            <button type="button" class="icon-btn" @click="showHomePicker = false">
-              <Icon name="lucide:x" />
-            </button>
-          </header>
-          <div class="picker-toolbar">
-            <select v-model="homePickerCategory" class="picker-select">
-              <option value="">
-                全部分类
-              </option>
-              <option v-for="c in categories" :key="c.id" :value="c.id">
-                {{ c.labelEn }}
-              </option>
-            </select>
-            <div class="picker-search">
-              <Icon name="lucide:search" class="picker-search-icon" />
-              <input v-model="homePickerSearch" type="text" placeholder="搜索标题或系列…">
-            </div>
-            <span class="toolbar-count">
-              <strong>{{ homePickerArtworks.length }}</strong>
-              <small>matches</small>
+    <AdminModal v-model="showHomePicker" size="picker">
+      <template #title>
+        选择作品 ·
+        <span v-if="homePickerMode?.type === 'slot'">{{ homePickerMode.slot }}</span>
+        <span v-else-if="homePickerMode?.type === 'append-selected'">追加到 Selected</span>
+        <span v-else-if="homePickerMode?.type === 'append-carousel'">追加到 Carousel</span>
+      </template>
+      <div class="picker-toolbar">
+        <select v-model="homePickerCategory" class="picker-select">
+          <option value="">
+            全部分类
+          </option>
+          <option v-for="c in categories" :key="c.id" :value="c.id">
+            {{ c.labelEn }}
+          </option>
+        </select>
+        <div class="picker-search">
+          <Icon name="lucide:search" class="picker-search-icon" />
+          <input v-model="homePickerSearch" type="text" placeholder="搜索标题或系列…">
+        </div>
+        <span class="toolbar-count">
+          <strong>{{ homePickerArtworks.length }}</strong>
+          <small>matches</small>
+        </span>
+      </div>
+      <div v-if="homePickerArtworks.length === 0" class="empty">
+        <Icon name="lucide:inbox" />
+        <p>没有匹配的作品。先去 Upload 上传，或调整筛选。</p>
+      </div>
+      <ul v-else class="picker-grid">
+        <li
+          v-for="a in homePickerArtworks"
+          :key="a.id"
+          class="picker-card"
+          :class="{ 'is-picked': pickedIds.has(a.id) }"
+          :aria-disabled="pickedIds.has(a.id) ? 'true' : undefined"
+          @click="onPickerCardClick(a.id)"
+        >
+          <div class="picker-thumb">
+            <img :src="a.url" :alt="a.titleEn || a.seriesNameEn">
+            <span v-if="pickedIds.has(a.id)" class="picker-badge">
+              <Icon name="lucide:check" />
+              <em>{{ pickedLabel() }}</em>
             </span>
           </div>
-          <div v-if="homePickerArtworks.length === 0" class="empty">
-            <Icon name="lucide:inbox" />
-            <p>没有匹配的作品。先去 Upload 上传，或调整筛选。</p>
+          <div class="picker-info">
+            <strong>{{ a.titleEn || a.seriesNameEn }}</strong>
+            <small>{{ a.seriesNameZh || a.seriesNameEn }} · {{ categoryLabel(a.categoryId) }}</small>
           </div>
-          <ul v-else class="picker-grid">
-            <li
-              v-for="a in homePickerArtworks"
-              :key="a.id"
-              class="picker-card"
-              :class="{ 'is-picked': pickedIds.has(a.id) }"
-              :aria-disabled="pickedIds.has(a.id) ? 'true' : undefined"
-              @click="onPickerCardClick(a.id)"
-            >
-              <div class="picker-thumb">
-                <img :src="a.url" :alt="a.titleEn || a.seriesNameEn">
-                <span v-if="pickedIds.has(a.id)" class="picker-badge">
-                  <Icon name="lucide:check" />
-                  <em>{{ pickedLabel() }}</em>
-                </span>
-              </div>
-              <div class="picker-info">
-                <strong>{{ a.titleEn || a.seriesNameEn }}</strong>
-                <small>{{ a.seriesNameZh || a.seriesNameEn }} · {{ categoryLabel(a.categoryId) }}</small>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </Transition>
+        </li>
+      </ul>
+    </AdminModal>
   </section>
 </template>
 
@@ -717,14 +695,6 @@ onBeforeUnmount(() => {
   font-style: italic;
 }
 
-.modal.modal-wide {
-  width: min(1200px, 96vw);
-  max-height: 92vh;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-}
-
 .picker-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -781,16 +751,23 @@ onBeforeUnmount(() => {
   list-style: none;
   margin: 0;
   padding: 0.4rem 0.1rem 0.1rem;
+  min-height: 0;
   display: grid;
+  align-content: start;
   gap: 0.85rem;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-auto-rows: max-content;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .picker-card {
   position: relative;
   display: grid;
   grid-template-rows: auto auto;
+  align-self: start;
+  min-width: 0;
   background: #fff;
   border: 1px solid rgba(22, 24, 31, 0.1);
   border-radius: 6px;

@@ -1,4 +1,5 @@
 import { asc, eq, sql, tables, useDrizzle } from '~~/server/utils/drizzle'
+import { versionBlobUrl } from '~~/server/utils/blob-url'
 
 export default defineEventHandler(async () => {
   const db = useDrizzle()
@@ -36,12 +37,12 @@ export default defineEventHandler(async () => {
 
   const covers = coverIds.length > 0
     ? await db
-        .select({ id: tables.artworks.id, url: tables.artworks.url })
+        .select({ id: tables.artworks.id, url: tables.artworks.url, sizeBytes: tables.artworks.sizeBytes })
         .from(tables.artworks)
         .where(sql`${tables.artworks.id} in ${coverIds}`)
         .all()
     : []
-  const coverMap = new Map(covers.map(c => [c.id, c.url]))
+  const coverMap = new Map(covers.map(c => [c.id, versionBlobUrl(c.url, c.sizeBytes)]))
 
   return {
     categories: categoriesRows,

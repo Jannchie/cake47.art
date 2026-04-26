@@ -19,6 +19,37 @@ const filteredArtworks = computed(() => {
   })
 })
 
+const groupedArtworks = computed(() => {
+  return categories.value
+    .map((cat) => {
+      const catItems = filteredArtworks.value.filter(a => a.categoryId === cat.id)
+      if (catItems.length === 0) {
+        return null
+      }
+      const seriesInCat = seriesList.value.filter(s => s.categoryId === cat.id)
+      const seriesGroups = seriesInCat
+        .map(series => ({
+          series,
+          items: catItems.filter(a => a.seriesId === series.id),
+        }))
+        .filter(g => g.items.length > 0)
+      const knownSeriesIds = new Set(seriesInCat.map(s => s.id))
+      const orphanItems = catItems.filter(a => !knownSeriesIds.has(a.seriesId))
+      return {
+        category: cat,
+        items: catItems,
+        seriesGroups,
+        orphanItems,
+      }
+    })
+    .filter((g): g is NonNullable<typeof g> => g !== null)
+})
+
+function clearFilters() {
+  filterCategory.value = ''
+  filterSeries.value = ''
+}
+
 async function deleteArtwork(item: typeof artworks.value[number]) {
   if (!confirm(`确认删除作品「${item.titleEn || item.seriesNameEn}」？`)) {
     return
@@ -179,6 +210,7 @@ async function submitEdit() {
     replacing.value = false
   }
 }
+
 </script>
 
 <template>
@@ -217,6 +249,15 @@ async function submitEdit() {
           </option>
         </select>
       </label>
+      <button
+        v-if="filterCategory || filterSeries"
+        type="button"
+        class="btn btn-ghost btn-sm toolbar-clear"
+        @click="clearFilters"
+      >
+        <Icon name="lucide:x" />
+        <span>清除筛选</span>
+      </button>
       <span class="toolbar-count">
         <strong>{{ filteredArtworks.length }}</strong>
         <small>filtered</small>
@@ -228,170 +269,365 @@ async function submitEdit() {
       <p>暂无作品。前往 Upload 上传。</p>
     </div>
 
-    <ul v-else class="artworks-grid">
-      <li
-        v-for="item in filteredArtworks"
-        :key="item.id"
-        class="artwork-card"
+    <div v-else class="artwork-stack">
+      <article
+        v-for="group in groupedArtworks"
+        :key="group.category.id"
+        class="artwork-section"
       >
-        <div class="artwork-thumb">
-          <img :src="item.url" :alt="item.titleEn || item.seriesNameEn" loading="lazy">
-          <div class="artwork-overlay">
-            <button type="button" class="overlay-btn" title="编辑" @click="openEdit(item)">
-              <Icon name="lucide:edit-3" />
-            </button>
-            <button type="button" class="overlay-btn is-danger" title="删除" @click="deleteArtwork(item)">
-              <Icon name="lucide:trash" />
-            </button>
-          </div>
-          <span v-if="item.featured" class="artwork-badge">★</span>
-        </div>
-        <div class="artwork-info">
-          <strong>{{ item.titleEn || item.seriesNameEn }}</strong>
-          <small>{{ seriesNameById(item.seriesId) }} · {{ categoryLabel(item.categoryId) }}</small>
-          <span class="artwork-tags">
-            <em class="tag">{{ item.width }}×{{ item.height }}</em>
-            <em class="tag">{{ bytesLabel(item.sizeBytes) }}</em>
+        <header class="artwork-section-head">
+          <span class="artwork-section-mark" aria-hidden="true">
+            <Icon :name="group.category.icon" />
           </span>
+          <div class="artwork-section-title">
+            <strong>{{ group.category.labelEn }}</strong>
+            <small>{{ group.category.labelZh }} · {{ group.category.labelJa }}</small>
+          </div>
+          <span class="artwork-section-count">
+            <strong>{{ group.items.length }}</strong>
+            <small>artworks</small>
+          </span>
+        </header>
+        <div class="artwork-subsections">
+          <section
+            v-for="sg in group.seriesGroups"
+            :key="sg.series.id"
+            class="artwork-subsection"
+          >
+            <header class="artwork-subsection-head">
+              <div class="artwork-subsection-title">
+                <strong>{{ sg.series.nameEn }}</strong>
+                <small>{{ sg.series.nameZh }} · {{ sg.series.nameJa }}</small>
+              </div>
+              <span class="artwork-subsection-count">
+                <strong>{{ sg.items.length }}</strong>
+                <small>{{ sg.items.length > 1 ? 'works' : 'work' }}</small>
+              </span>
+            </header>
+            <ul class="artworks-grid">
+              <li
+                v-for="item in sg.items"
+                :key="item.id"
+                class="artwork-card"
+              >
+                <div class="artwork-thumb">
+                  <img :src="item.url" :alt="item.titleEn || item.seriesNameEn" loading="lazy">
+                  <div class="artwork-overlay">
+                    <button type="button" class="overlay-btn" title="编辑" @click="openEdit(item)">
+                      <Icon name="lucide:edit-3" />
+                    </button>
+                    <button type="button" class="overlay-btn is-danger" title="删除" @click="deleteArtwork(item)">
+                      <Icon name="lucide:trash" />
+                    </button>
+                  </div>
+                  <span v-if="item.featured" class="artwork-badge">★</span>
+                </div>
+                <div class="artwork-info">
+                  <strong>{{ item.titleEn || sg.series.nameEn }}</strong>
+                  <span class="artwork-tags">
+                    <em class="tag">{{ item.width }}×{{ item.height }}</em>
+                    <em class="tag">{{ bytesLabel(item.sizeBytes) }}</em>
+                  </span>
+                </div>
+              </li>
+            </ul>
+          </section>
+
+          <section v-if="group.orphanItems.length" class="artwork-subsection is-orphan">
+            <header class="artwork-subsection-head">
+              <div class="artwork-subsection-title">
+                <strong>未归类</strong>
+                <small>orphan · 系列已删除</small>
+              </div>
+              <span class="artwork-subsection-count">
+                <strong>{{ group.orphanItems.length }}</strong>
+                <small>{{ group.orphanItems.length > 1 ? 'works' : 'work' }}</small>
+              </span>
+            </header>
+            <ul class="artworks-grid">
+              <li
+                v-for="item in group.orphanItems"
+                :key="item.id"
+                class="artwork-card"
+              >
+                <div class="artwork-thumb">
+                  <img :src="item.url" :alt="item.titleEn || item.seriesNameEn" loading="lazy">
+                  <div class="artwork-overlay">
+                    <button type="button" class="overlay-btn" title="编辑" @click="openEdit(item)">
+                      <Icon name="lucide:edit-3" />
+                    </button>
+                    <button type="button" class="overlay-btn is-danger" title="删除" @click="deleteArtwork(item)">
+                      <Icon name="lucide:trash" />
+                    </button>
+                  </div>
+                  <span v-if="item.featured" class="artwork-badge">★</span>
+                </div>
+                <div class="artwork-info">
+                  <strong>{{ item.titleEn || item.seriesNameEn }}</strong>
+                  <small>{{ seriesNameById(item.seriesId) }}</small>
+                  <span class="artwork-tags">
+                    <em class="tag">{{ item.width }}×{{ item.height }}</em>
+                    <em class="tag">{{ bytesLabel(item.sizeBytes) }}</em>
+                  </span>
+                </div>
+              </li>
+            </ul>
+          </section>
         </div>
-      </li>
-    </ul>
+      </article>
+    </div>
 
-    <Transition name="fade">
-      <div v-if="showEdit" class="modal-shade" @click.self="closeEdit">
-        <div class="modal modal-wide">
-          <header class="modal-head">
-            <h3>编辑作品</h3>
-            <button type="button" class="icon-btn" @click="closeEdit">
-              <Icon name="lucide:x" />
-            </button>
-          </header>
-          <form class="modal-form" @submit.prevent="submitEdit">
-            <div class="edit-grid">
-              <div class="edit-image">
-                <div class="edit-image-frame">
-                  <img v-if="replacePending" :src="replacePending.preview" alt="新图预览">
-                  <img v-else :src="editingUrl" alt="当前图片">
-                </div>
-                <div class="edit-image-meta">
-                  <small v-if="replacePending">
-                    新图 · {{ replacePending.width }}×{{ replacePending.height }} · {{ bytesLabel(replacePending.file.size) }}
-                  </small>
-                  <small v-else>
-                    {{ editingMeta.width }}×{{ editingMeta.height }} · {{ bytesLabel(editingMeta.sizeBytes) }} · {{ editingMeta.mimeType }}
-                  </small>
-                </div>
-                <div class="edit-image-actions">
-                  <input
-                    ref="replaceFileInput"
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    @change="onPickReplaceFile"
-                  >
-                  <button type="button" class="btn btn-ghost btn-sm" @click="replaceFileInput?.click()">
-                    <Icon name="lucide:replace" />
-                    <span>选择新图</span>
-                  </button>
-                  <button
-                    v-if="replacePending"
-                    type="button"
-                    class="btn btn-ghost btn-sm"
-                    @click="clearReplacePending"
-                  >
-                    <Icon name="lucide:x" />
-                    <span>取消替换</span>
-                  </button>
-                </div>
-              </div>
+    <AdminModal v-model="showEdit" title="编辑作品" size="wide" @close="closeEdit">
+      <form class="modal-form" @submit.prevent="submitEdit">
+        <div class="edit-grid">
+          <div class="edit-image">
+            <div class="edit-image-frame">
+              <img v-if="replacePending" :src="replacePending.preview" alt="新图预览">
+              <img v-else :src="editingUrl" alt="当前图片">
+            </div>
+            <div class="edit-image-meta">
+              <small v-if="replacePending">
+                新图 · {{ replacePending.width }}×{{ replacePending.height }} · {{ bytesLabel(replacePending.file.size) }}
+              </small>
+              <small v-else>
+                {{ editingMeta.width }}×{{ editingMeta.height }} · {{ bytesLabel(editingMeta.sizeBytes) }} · {{ editingMeta.mimeType }}
+              </small>
+            </div>
+            <div class="edit-image-actions">
+              <input
+                ref="replaceFileInput"
+                type="file"
+                accept="image/*"
+                hidden
+                @change="onPickReplaceFile"
+              >
+              <button type="button" class="btn btn-ghost btn-sm" @click="replaceFileInput?.click()">
+                <Icon name="lucide:replace" />
+                <span>选择新图</span>
+              </button>
+              <button
+                v-if="replacePending"
+                type="button"
+                class="btn btn-ghost btn-sm"
+                @click="clearReplacePending"
+              >
+                <Icon name="lucide:x" />
+                <span>取消替换</span>
+              </button>
+            </div>
+          </div>
 
-              <div class="edit-fields">
-                <label class="field">
-                  <span>系列</span>
-                  <select v-model="editForm.seriesId" required>
-                    <option v-for="s in seriesList" :key="s.id" :value="s.id">
-                      [{{ categoryLabel(s.categoryId) }}] {{ s.nameEn }}
-                    </option>
-                  </select>
-                </label>
+          <div class="edit-fields">
+            <label class="field">
+              <span>系列</span>
+              <select v-model="editForm.seriesId" required>
+                <option v-for="s in seriesList" :key="s.id" :value="s.id">
+                  [{{ categoryLabel(s.categoryId) }}] {{ s.nameEn }}
+                </option>
+              </select>
+            </label>
 
-                <div class="form-row-3">
-                  <label class="field">
-                    <span>Title (EN)</span>
-                    <input v-model="editForm.titleEn" type="text">
-                  </label>
-                  <label class="field">
-                    <span>标题 (ZH)</span>
-                    <input v-model="editForm.titleZh" type="text">
-                  </label>
-                  <label class="field">
-                    <span>標題 (JA)</span>
-                    <input v-model="editForm.titleJa" type="text">
-                  </label>
-                </div>
-
-                <div class="form-row-3">
-                  <label class="field">
-                    <span>Description (EN)</span>
-                    <textarea v-model="editForm.descriptionEn" rows="2" />
-                  </label>
-                  <label class="field">
-                    <span>描述 (ZH)</span>
-                    <textarea v-model="editForm.descriptionZh" rows="2" />
-                  </label>
-                  <label class="field">
-                    <span>説明 (JA)</span>
-                    <textarea v-model="editForm.descriptionJa" rows="2" />
-                  </label>
-                </div>
-
-                <div class="form-row-3">
-                  <label class="field">
-                    <span>object-position</span>
-                    <input v-model="editForm.objectPosition" type="text" placeholder="50% 30%">
-                  </label>
-                  <label class="field">
-                    <span>排序</span>
-                    <input v-model.number="editForm.sortOrder" type="number">
-                  </label>
-                  <label class="field field-checks">
-                    <span>选项</span>
-                    <span class="check-row">
-                      <label class="check">
-                        <input v-model="editForm.featured" type="checkbox">
-                        <span>Featured</span>
-                      </label>
-                      <label class="check">
-                        <input v-model="editForm.setAsCover" type="checkbox">
-                        <span>设为系列封面</span>
-                      </label>
-                    </span>
-                  </label>
-                </div>
-              </div>
+            <div class="form-row-3">
+              <label class="field">
+                <span>Title (EN)</span>
+                <input v-model="editForm.titleEn" type="text">
+              </label>
+              <label class="field">
+                <span>标题 (ZH)</span>
+                <input v-model="editForm.titleZh" type="text">
+              </label>
+              <label class="field">
+                <span>標題 (JA)</span>
+                <input v-model="editForm.titleJa" type="text">
+              </label>
             </div>
 
-            <p v-if="editError" class="edit-error">
-              {{ editError }}
-            </p>
+            <div class="form-row-3">
+              <label class="field">
+                <span>Description (EN)</span>
+                <textarea v-model="editForm.descriptionEn" rows="2" />
+              </label>
+              <label class="field">
+                <span>描述 (ZH)</span>
+                <textarea v-model="editForm.descriptionZh" rows="2" />
+              </label>
+              <label class="field">
+                <span>説明 (JA)</span>
+                <textarea v-model="editForm.descriptionJa" rows="2" />
+              </label>
+            </div>
 
-            <footer class="modal-foot">
-              <button type="button" class="btn btn-ghost" :disabled="submittingEdit" @click="closeEdit">
-                取消
-              </button>
-              <button type="submit" class="btn btn-primary" :disabled="submittingEdit">
-                <Icon :name="replacing ? 'lucide:loader-2' : 'lucide:save'" :class="{ 'icon-spin': replacing }" />
-                <span>{{ replacing ? '上传中…' : '保存' }}</span>
-              </button>
-            </footer>
-          </form>
+            <div class="form-row-3">
+              <label class="field">
+                <span>object-position</span>
+                <input v-model="editForm.objectPosition" type="text" placeholder="50% 30%">
+              </label>
+              <label class="field">
+                <span>排序</span>
+                <input v-model.number="editForm.sortOrder" type="number">
+              </label>
+              <label class="field field-checks">
+                <span>选项</span>
+                <span class="check-row">
+                  <label class="check">
+                    <input v-model="editForm.featured" type="checkbox">
+                    <span>Featured</span>
+                  </label>
+                  <label class="check">
+                    <input v-model="editForm.setAsCover" type="checkbox">
+                    <span>设为系列封面</span>
+                  </label>
+                </span>
+              </label>
+            </div>
+          </div>
         </div>
-      </div>
-    </Transition>
+
+        <p v-if="editError" class="edit-error">
+          {{ editError }}
+        </p>
+
+        <footer class="modal-foot">
+          <button type="button" class="btn btn-ghost" :disabled="submittingEdit" @click="closeEdit">
+            取消
+          </button>
+          <button type="submit" class="btn btn-primary" :disabled="submittingEdit">
+            <Icon :name="replacing ? 'lucide:loader-2' : 'lucide:save'" :class="{ 'icon-spin': replacing }" />
+            <span>{{ replacing ? '上传中…' : '保存' }}</span>
+          </button>
+        </footer>
+      </form>
+    </AdminModal>
   </section>
 </template>
 
 <style scoped>
+.toolbar-clear {
+  align-self: end;
+}
+
+.artwork-stack {
+  display: grid;
+  gap: 1.6rem;
+}
+
+.artwork-section {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.artwork-section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(22, 24, 31, 0.1);
+}
+
+.artwork-section-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(22, 24, 31, 0.05);
+  color: #1a1d24;
+  font-size: 1.05rem;
+  flex: 0 0 auto;
+}
+
+.artwork-section-title { display: grid; line-height: 1.2; min-width: 0; }
+.artwork-section-title strong {
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #1a1d24;
+}
+.artwork-section-title small {
+  font-size: 0.74rem;
+  color: #6b7280;
+  letter-spacing: 0.04em;
+  margin-top: 1px;
+}
+
+.artwork-section-count {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+.artwork-section-count strong {
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1rem;
+  color: #8a1827;
+  font-weight: 500;
+}
+.artwork-section-count small {
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.artwork-subsections {
+  display: grid;
+  gap: 1.05rem;
+}
+
+.artwork-subsection { display: grid; gap: 0.55rem; }
+
+.artwork-subsection-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.15rem 0 0.15rem 0.65rem;
+  border-left: 2px solid #8a1827;
+}
+
+.artwork-subsection.is-orphan .artwork-subsection-head {
+  border-left-color: rgba(22, 24, 31, 0.25);
+}
+
+.artwork-subsection-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; min-width: 0; }
+.artwork-subsection-title strong {
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #1a1d24;
+}
+.artwork-subsection-title small {
+  font-size: 0.72rem;
+  color: #6b7280;
+  letter-spacing: 0.02em;
+}
+
+.artwork-subsection.is-orphan .artwork-subsection-title strong {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.artwork-subsection-count {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+.artwork-subsection-count strong {
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #8a1827;
+}
+.artwork-subsection-count small {
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
 .artworks-grid {
   list-style: none;
   margin: 0;
@@ -501,8 +737,6 @@ async function submitEdit() {
   background: #8a1827;
   color: #fff;
 }
-
-.modal-wide { max-width: min(960px, 92vw); }
 
 .edit-grid {
   display: grid;

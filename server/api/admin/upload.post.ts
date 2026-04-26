@@ -1,3 +1,4 @@
+import { blob } from 'hub:blob'
 import { assertAdmin } from '~~/server/utils/auth'
 import { shortId } from '~~/server/utils/ids'
 
@@ -23,7 +24,7 @@ export default defineEventHandler(async (event) => {
   const ext = (file.name || '').split('.').pop()?.toLowerCase() ?? 'bin'
   const key = `gallery/${new Date().getFullYear()}/${shortId(16)}.${ext}`
 
-  const stored = await hubBlob().put(key, file, {
+  const stored = await blob.put(key, file, {
     contentType: file.type,
     addRandomSuffix: false,
   })
