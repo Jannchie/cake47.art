@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { and, asc, desc, eq, tables, useDrizzle } from '~~/server/utils/drizzle'
+import { and, asc, desc, eq, sql, tables, useDrizzle } from '~~/server/utils/drizzle'
 import { versionBlobUrl } from '~~/server/utils/blob-url'
 
 const querySchema = z.object({
@@ -32,6 +32,17 @@ export default defineEventHandler(async (event) => {
     conditions.push(eq(tables.artworkSeriesLinks.isPrimary, true))
   }
 
+  const slotPriorityExpr = sql<number>`CASE
+    WHEN ${tables.homeSlots.slotKey} = 'hero' THEN 0
+    WHEN ${tables.homeSlots.slotKey} LIKE 'selected.%' THEN 1
+    ELSE 2
+  END`
+
+  const selectedPositionExpr = sql<number | null>`CASE
+    WHEN ${tables.homeSlots.slotKey} LIKE 'selected.%' THEN ${tables.homeSlots.position}
+    ELSE NULL
+  END`
+
   const rows = await db
     .select({
       id: tables.artworks.id,
@@ -56,12 +67,17 @@ export default defineEventHandler(async (event) => {
       seriesNameEn: tables.series.nameEn,
       seriesNameJa: tables.series.nameJa,
       categoryId: tables.series.categoryId,
+      slotPriority: slotPriorityExpr.as('slot_priority'),
+      slotPosition: selectedPositionExpr.as('slot_position'),
     })
     .from(tables.artworks)
     .innerJoin(tables.artworkSeriesLinks, eq(tables.artworkSeriesLinks.artworkId, tables.artworks.id))
     .innerJoin(tables.series, eq(tables.series.id, tables.artworkSeriesLinks.seriesId))
+    .leftJoin(tables.homeSlots, eq(tables.homeSlots.artworkId, tables.artworks.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(
+      asc(slotPriorityExpr),
+      sql`${selectedPositionExpr} ASC NULLS LAST`,
       asc(tables.artworkSeriesLinks.sortOrder),
       desc(tables.artworks.createdAt),
     )

@@ -13,6 +13,12 @@ useHead({
   htmlAttrs: {
     lang: 'zh-CN',
   },
+  meta: [
+    {
+      name: 'color-scheme',
+      content: 'only light',
+    },
+  ],
   link: [
     {
       rel: 'icon',
@@ -28,6 +34,12 @@ useHead({
 </template>
 
 <style>
+:root,
+html,
+body {
+  color-scheme: light only;
+}
+
 [lang="en"],
 [lang="ja"] {
   font-family: 'Shippori Mincho', 'Noto Serif JP', 'Noto Sans JP', 'Inter', serif;

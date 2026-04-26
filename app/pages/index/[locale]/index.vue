@@ -29,11 +29,11 @@ const copyByLocale: Record<Locale, {
   marqueeCharacterDesign: string
   marqueeArtist: string
   marqueeSince: string
-  sectionProfile: string
-  sectionWorks: string
-  sectionEkac: string
-  sectionCollection: string
-  sectionContact: string
+  archiveEyebrow: string
+  archiveTitle: string
+  archiveLead: string
+  archiveCta: string
+  archiveStamp: string
   featured: string
   footerCredit: string
 }> = {
@@ -58,11 +58,11 @@ const copyByLocale: Record<Locale, {
     marqueeCharacterDesign: '原创与同人',
     marqueeArtist: '私期',
     marqueeSince: '精选存档',
-    sectionProfile: '关于',
-    sectionWorks: '作品',
-    sectionEkac: 'Ekac',
-    sectionCollection: '创作方向',
-    sectionContact: '联络',
+    archiveEyebrow: '完整存档',
+    archiveTitle: '作品集',
+    archiveLead: '从同人到原创、从角色插画到设定稿，更多作品收录于完整作品集，按系列归档浏览。',
+    archiveCta: '进入作品集',
+    archiveStamp: 'cake47.art / archive',
     featured: '精选',
     footerCredit: 'snowcake47 / 私期',
   },
@@ -87,11 +87,11 @@ const copyByLocale: Record<Locale, {
     marqueeCharacterDesign: 'Original & Fan Works',
     marqueeArtist: 'Shiki',
     marqueeSince: 'Selected archive',
-    sectionProfile: 'Profile',
-    sectionWorks: 'Works',
-    sectionEkac: 'Ekac',
-    sectionCollection: 'Collection',
-    sectionContact: 'Contact',
+    archiveEyebrow: 'Full archive',
+    archiveTitle: 'Gallery',
+    archiveLead: 'Browse the complete archive — fan works, original pieces, character illustrations, and concept sheets, all sorted by series.',
+    archiveCta: 'Enter the gallery',
+    archiveStamp: 'cake47.art / archive',
     featured: 'Selected',
     footerCredit: 'snowcake47 / Shiki',
   },
@@ -116,11 +116,11 @@ const copyByLocale: Record<Locale, {
     marqueeCharacterDesign: 'オリジナルとファンアート',
     marqueeArtist: '私期',
     marqueeSince: 'セレクトアーカイブ',
-    sectionProfile: 'プロフィール',
-    sectionWorks: '作品',
-    sectionEkac: 'Ekac',
-    sectionCollection: 'カテゴリ',
-    sectionContact: 'コンタクト',
+    archiveEyebrow: 'フルアーカイブ',
+    archiveTitle: '作品集',
+    archiveLead: 'ファンアートからオリジナル、キャラクターイラストから設定画まで。すべての作品をシリーズごとにアーカイブしています。',
+    archiveCta: '作品集を見る',
+    archiveStamp: 'cake47.art / archive',
     featured: 'セレクト',
     footerCredit: 'snowcake47 / 私期',
   },
@@ -475,7 +475,7 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
-    <section class="intro">
+    <!-- <section class="intro">
       <div class="intro-grid">
         <h1 class="hero-title" data-reveal data-trace-title style="--reveal-delay: 80ms">
           <span class="hero-title-row">
@@ -510,7 +510,7 @@ onBeforeUnmount(() => {
           </span>
         </h1>
       </div>
-    </section>
+    </section> -->
 
     <section id="profile" class="profile">
       <SectionFlow variant="sweep" />
@@ -522,7 +522,7 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="profile-content" data-reveal style="--reveal-delay: 120ms">
-          <span class="section-num">01 / {{ copy.sectionProfile }}</span>
+          <span class="section-num">01<template v-if="locale !== 'en'"> / Profile</template></span>
           <h2 class="section-title">{{ copy.profile }}</h2>
           <p class="profile-bio">
             {{ copy.profileBio }}
@@ -534,7 +534,7 @@ onBeforeUnmount(() => {
     <section id="works" class="works">
       <SectionFlow variant="corner" />
       <div class="section-head" data-reveal>
-        <span class="section-num">02 / {{ copy.sectionWorks }}</span>
+        <span class="section-num">02<template v-if="locale !== 'en'"> / Works</template></span>
         <h2 class="section-title">
           {{ copy.works }}
           <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
@@ -563,12 +563,11 @@ onBeforeUnmount(() => {
 
         <header class="work-feature-meta">
           <span class="work-feature-tag">
-            <span class="work-feature-tag-mark">No.</span>
+            <span class="work-feature-tag-mark" aria-hidden="true">◆</span>
             {{ copy.featured }}
           </span>
           <span class="work-feature-divider" aria-hidden="true" />
           <span class="work-feature-series">{{ categoryText(heroFeature.category) }}</span>
-          <span class="work-feature-counter">N°00</span>
         </header>
 
         <div class="work-feature-frame">
@@ -606,7 +605,7 @@ onBeforeUnmount(() => {
     <section id="ekac" class="ekac">
       <SectionFlow variant="split" />
       <div class="section-head" data-reveal>
-        <span class="section-num">03 / {{ copy.sectionEkac }}</span>
+        <span class="section-num">03<template v-if="locale !== 'en'"> / Ekac</template></span>
         <h2 class="section-title">
           {{ copy.ekac }}
           <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
@@ -637,7 +636,7 @@ onBeforeUnmount(() => {
     <section id="collection" class="categories">
       <SectionFlow variant="cluster" mirror />
       <div class="section-head" data-reveal>
-        <span class="section-num">04 / {{ copy.sectionCollection }}</span>
+        <span class="section-num">04<template v-if="locale !== 'en'"> / Collection</template></span>
         <h2 class="section-title">
           {{ copy.collection }}
           <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
@@ -676,7 +675,7 @@ onBeforeUnmount(() => {
     <section id="contact" class="contact">
       <SectionFlow variant="mark" />
       <div class="section-head" data-reveal>
-        <span class="section-num">05 / {{ copy.sectionContact }}</span>
+        <span class="section-num">05<template v-if="locale !== 'en'"> / Contact</template></span>
         <h2 class="section-title">
           {{ copy.contact }}
           <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
@@ -706,6 +705,55 @@ onBeforeUnmount(() => {
           </NuxtLink>
         </li>
       </ul>
+    </section>
+
+    <section id="archive" class="archive">
+      <SectionFlow variant="sweep" mirror />
+      <div class="section-head" data-reveal>
+        <span class="section-num">06<template v-if="locale !== 'en'"> / Archive</template></span>
+        <h2 class="section-title">
+          {{ copy.archiveTitle }}
+          <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
+            <path d="M0,10 Q50,-5 100,10 T200,10" fill="none" stroke="#8a1827" stroke-width="1" stroke-linecap="round" opacity="0.6" />
+          </svg>
+        </h2>
+      </div>
+
+      <div class="archive-card" data-reveal>
+        <span class="archive-corner archive-corner-tl" aria-hidden="true" />
+        <span class="archive-corner archive-corner-tr" aria-hidden="true" />
+        <span class="archive-corner archive-corner-bl" aria-hidden="true" />
+        <span class="archive-corner archive-corner-br" aria-hidden="true" />
+
+        <div class="archive-meta">
+          <span class="archive-eyebrow">
+            <span class="archive-eyebrow-deco" aria-hidden="true">◆</span>
+            {{ copy.archiveEyebrow }}
+            <span class="archive-eyebrow-deco" aria-hidden="true">◆</span>
+          </span>
+        </div>
+
+        <p class="archive-lead">{{ copy.archiveLead }}</p>
+
+        <NuxtLink :to="`/${locale}/gallery`" class="archive-cta">
+          <span class="archive-cta-index">06</span>
+          <span class="archive-cta-body">
+            <small>{{ copy.archiveStamp }}</small>
+            <strong>{{ copy.archiveCta }}</strong>
+          </span>
+          <span class="archive-cta-arrow" aria-hidden="true">
+            <svg viewBox="0 0 56 18">
+              <path d="M0 9h50M42 1l8 8-8 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+        </NuxtLink>
+
+        <div class="archive-rule" aria-hidden="true">
+          <span />
+          <em>cake47 archive · since 2014</em>
+          <span />
+        </div>
+      </div>
     </section>
 
     <footer class="site-footer">
@@ -1138,7 +1186,8 @@ onBeforeUnmount(() => {
 .works,
 .ekac,
 .categories,
-.contact {
+.contact,
+.archive {
   position: relative;
   isolation: isolate;
 }
@@ -1147,7 +1196,8 @@ onBeforeUnmount(() => {
 .works > *:not(.flow),
 .ekac > *:not(.flow),
 .categories > *:not(.flow),
-.contact > *:not(.flow) {
+.contact > *:not(.flow),
+.archive > *:not(.flow) {
   position: relative;
   z-index: 1;
 }
@@ -1183,6 +1233,12 @@ onBeforeUnmount(() => {
   height: 1px;
   background: var(--color-ink);
   opacity: 0.5;
+}
+
+@media (max-width: 767px) {
+  .section-num {
+    justify-self: center;
+  }
 }
 
 .section-title {
@@ -1310,20 +1366,10 @@ onBeforeUnmount(() => {
 }
 
 .work-feature-series {
+  margin-left: auto;
   font-weight: 600;
   letter-spacing: 0.18em;
   color: #6c7384;
-}
-
-.work-feature-counter {
-  margin-left: auto;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 0.95rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: none;
-  color: #8a1827;
 }
 
 .work-feature-frame {
@@ -1382,7 +1428,6 @@ onBeforeUnmount(() => {
 @media (max-width: 640px) {
   .work-feature { padding: 1.2rem; }
   .work-feature-meta { gap: 0.6rem; font-size: 0.66rem; }
-  .work-feature-counter { width: 100%; margin-left: 0; }
   .work-feature-divider { width: 32px; }
   .work-feature-flourish { display: none; }
   .work-feature-caption { grid-template-columns: 1fr; gap: 0.8rem; }
@@ -1390,14 +1435,14 @@ onBeforeUnmount(() => {
 }
 
 .works-grid {
-  column-count: 1;
-  column-gap: 1.6rem;
+  column-count: 2;
+  column-gap: 0.8rem;
   max-width: 1280px;
   margin: 0 auto;
 }
 
 @media (min-width: 640px) {
-  .works-grid { column-count: 2; }
+  .works-grid { column-gap: 1.6rem; }
 }
 
 @media (min-width: 1024px) {
@@ -1702,7 +1747,8 @@ onBeforeUnmount(() => {
 .works .section-head,
 .categories .section-head,
 .contact .section-head,
-.ekac .section-head {
+.ekac .section-head,
+.archive .section-head {
   margin-left: auto;
   margin-right: auto;
   justify-items: center;
@@ -1809,6 +1855,234 @@ onBeforeUnmount(() => {
   }
   .contact-handle { grid-column: 1 / -1; }
   .contact-cta { display: none; }
+}
+
+/* ───── Archive ───── */
+.archive {
+  position: relative;
+  z-index: var(--z-content);
+  padding: 6rem 1.6rem 7rem;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(138, 24, 39, 0.08), transparent 55%),
+    radial-gradient(circle at 80% 75%, rgba(77, 114, 176, 0.08), transparent 55%);
+}
+
+.archive-card {
+  position: relative;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2.6rem clamp(1.6rem, 4vw, 3.2rem) 2.4rem;
+  background:
+    linear-gradient(180deg, rgba(251, 250, 250, 0.95) 0%, rgba(244, 243, 243, 0.92) 100%);
+  border: 1px solid rgba(22, 24, 31, 0.16);
+  box-shadow:
+    0 32px 70px -32px rgba(22, 24, 31, 0.28),
+    inset 0 0 0 1px rgba(250, 250, 250, 0.55);
+  display: grid;
+  gap: 1.8rem;
+}
+
+.archive-card::before {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border: 1px solid rgba(22, 24, 31, 0.08);
+  pointer-events: none;
+}
+
+.archive-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #16181f;
+  pointer-events: none;
+}
+
+.archive-corner::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #8a1827;
+}
+
+.archive-corner-tl { top: -7px; left: -7px; border-right: none; border-bottom: none; }
+.archive-corner-tl::after { top: -3px; left: -3px; }
+.archive-corner-tr { top: -7px; right: -7px; border-left: none; border-bottom: none; }
+.archive-corner-tr::after { top: -3px; right: -3px; }
+.archive-corner-bl { bottom: -7px; left: -7px; border-right: none; border-top: none; }
+.archive-corner-bl::after { bottom: -3px; left: -3px; }
+.archive-corner-br { bottom: -7px; right: -7px; border-left: none; border-top: none; }
+.archive-corner-br::after { bottom: -3px; right: -3px; }
+
+.archive-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.archive-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #16181f;
+}
+
+.archive-eyebrow-deco {
+  font-size: 0.55em;
+  color: #8a1827;
+  transform: translateY(-0.05em);
+}
+
+.archive-lead {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.85;
+  color: #2c303a;
+  max-width: 38em;
+}
+
+.archive-cta {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1.4rem;
+  padding: 1.3rem 1.6rem;
+  background: #16181f;
+  color: #fafafa;
+  border: 1px solid #16181f;
+  text-decoration: none;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 0.5s cubic-bezier(.2, .8, .2, 1), box-shadow 0.45s ease;
+}
+
+.archive-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, #8a1827 0%, #5e0f1c 100%);
+  transform: translateX(-101%);
+  transition: transform 0.7s cubic-bezier(.2, .8, .2, 1);
+  z-index: -1;
+}
+
+.archive-cta::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(250, 250, 250, 0.18);
+  pointer-events: none;
+  transition: border-color 0.45s ease;
+}
+
+.archive-cta:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 22px 44px -18px rgba(138, 24, 39, 0.55);
+}
+
+.archive-cta:hover::before { transform: translateX(0); }
+.archive-cta:hover::after { border-color: rgba(250, 250, 250, 0.32); }
+
+.archive-cta-index {
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border: 1px solid rgba(250, 250, 250, 0.32);
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(250, 250, 250, 0.85);
+  transition: border-color 0.4s ease, color 0.4s ease;
+}
+
+.archive-cta:hover .archive-cta-index {
+  border-color: rgba(250, 250, 250, 0.7);
+  color: #fafafa;
+}
+
+.archive-cta-body {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.archive-cta-body small {
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgba(250, 250, 250, 0.55);
+}
+
+.archive-cta-body strong {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 1.95rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #fafafa;
+}
+
+.archive-cta-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 56px;
+  height: 18px;
+  color: #fafafa;
+  overflow: hidden;
+}
+
+.archive-cta-arrow svg {
+  width: 56px;
+  height: 18px;
+  transition: transform 0.55s cubic-bezier(.2, .8, .2, 1);
+}
+
+.archive-cta:hover .archive-cta-arrow svg {
+  transform: translateX(8px);
+}
+
+.archive-rule {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 0.2rem;
+}
+
+.archive-rule span {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(22, 24, 31, 0.32), transparent);
+}
+
+.archive-rule em {
+  font-style: italic;
+  font-size: 0.72rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #6c7384;
+}
+
+@media (max-width: 640px) {
+  .archive { padding: 5rem 1.2rem 6rem; }
+  .archive-card { padding: 2rem 1.4rem 1.8rem; }
+  .archive-cta { grid-template-columns: auto 1fr; padding: 1.1rem 1.2rem; gap: 1rem; }
+  .archive-cta-arrow { display: none; }
+  .archive-rule em { font-size: 0.62rem; letter-spacing: 0.22em; }
 }
 
 /* ───── Footer ───── */

@@ -82,7 +82,6 @@ const copy = computed(() => {
     allCategories: string
     series: string
     empty: string
-    metaCreated: string
     countOf: string
     previous: string
     next: string
@@ -93,7 +92,6 @@ const copy = computed(() => {
       allCategories: '全部',
       series: '系列',
       empty: '暂无作品',
-      metaCreated: '收录',
       countOf: '/',
       previous: '上一张',
       next: '下一张',
@@ -104,7 +102,6 @@ const copy = computed(() => {
       allCategories: 'All',
       series: 'Series',
       empty: 'No works yet',
-      metaCreated: 'Filed',
       countOf: '/',
       previous: 'Previous artwork',
       next: 'Next artwork',
@@ -115,7 +112,6 @@ const copy = computed(() => {
       allCategories: 'すべて',
       series: 'シリーズ',
       empty: '作品はまだありません',
-      metaCreated: '収録',
       countOf: '/',
       previous: '前の作品',
       next: '次の作品',
@@ -217,6 +213,10 @@ let filmstripPointerId: number | null = null
 let filmstripDragStartX = 0
 let filmstripDragStartScrollLeft = 0
 let filmstripDragMoved = false
+let filmstripLastMoveX = 0
+let filmstripLastMoveTime = 0
+let filmstripScrollVelocity = 0
+let filmstripInertiaFrame: number | null = null
 let suppressFilmstripClick = false
 let suppressFilmstripClickTimer: number | null = null
 
@@ -262,6 +262,8 @@ function scrollFilmstripToCurrent() {
       return
     }
 
+    cancelFilmstripInertia()
+
     const targetCenter = target.offsetLeft + target.offsetWidth / 2
     const stripCenter = strip.clientWidth / 2
     strip.scrollTo({
@@ -275,6 +277,62 @@ function clampFilmstripScroll(strip: HTMLElement, left: number) {
   return Math.min(Math.max(left, 0), Math.max(strip.scrollWidth - strip.clientWidth, 0))
 }
 
+function cancelFilmstripInertia() {
+  if (filmstripInertiaFrame !== null) {
+    cancelAnimationFrame(filmstripInertiaFrame)
+    filmstripInertiaFrame = null
+  }
+}
+
+function startFilmstripInertia() {
+  const strip = filmstripRef.value
+  if (!strip) {
+    return
+  }
+  // px / ms; ignore tiny residuals so a near-still release does not coast.
+  if (Math.abs(filmstripScrollVelocity) < 0.05) {
+    return
+  }
+
+  cancelFilmstripInertia()
+
+  // Cap initial speed so a quick flick stays controllable.
+  const FRAME = 16.6667
+  let velocity = Math.max(-3.2, Math.min(3.2, filmstripScrollVelocity)) * FRAME
+  let lastTime = performance.now()
+
+  const decayPerFrame = 0.94
+  const stopThreshold = 0.25
+
+  function step(now: number) {
+    if (!strip) {
+      filmstripInertiaFrame = null
+      return
+    }
+    const dt = Math.max(1, now - lastTime)
+    lastTime = now
+
+    const moved = velocity * (dt / FRAME)
+    const next = clampFilmstripScroll(strip, strip.scrollLeft + moved)
+
+    if (next === strip.scrollLeft) {
+      filmstripInertiaFrame = null
+      return
+    }
+    strip.scrollLeft = next
+
+    velocity *= Math.pow(decayPerFrame, dt / FRAME)
+
+    if (Math.abs(velocity) < stopThreshold) {
+      filmstripInertiaFrame = null
+      return
+    }
+    filmstripInertiaFrame = requestAnimationFrame(step)
+  }
+
+  filmstripInertiaFrame = requestAnimationFrame(step)
+}
+
 function handleFilmstripWheel(event: WheelEvent) {
   const strip = filmstripRef.value
   if (!strip || strip.scrollWidth <= strip.clientWidth) {
@@ -286,6 +344,7 @@ function handleFilmstripWheel(event: WheelEvent) {
     return
   }
 
+  cancelFilmstripInertia()
   event.preventDefault()
   strip.scrollLeft = clampFilmstripScroll(strip, strip.scrollLeft + delta)
 }
@@ -296,12 +355,14 @@ function handleFilmstripPointerDown(event: PointerEvent) {
     return
   }
 
+  cancelFilmstripInertia()
   filmstripPointerId = event.pointerId
   filmstripDragStartX = event.clientX
   filmstripDragStartScrollLeft = strip.scrollLeft
   filmstripDragMoved = false
-  filmstripDragging.value = true
-  strip.setPointerCapture(event.pointerId)
+  filmstripLastMoveX = event.clientX
+  filmstripLastMoveTime = event.timeStamp || performance.now()
+  filmstripScrollVelocity = 0
 }
 
 function handleFilmstripPointerMove(event: PointerEvent) {
@@ -316,8 +377,22 @@ function handleFilmstripPointerMove(event: PointerEvent) {
   }
 
   if (filmstripDragMoved) {
+    filmstripDragging.value = true
+    if (!strip.hasPointerCapture(event.pointerId)) {
+      strip.setPointerCapture(event.pointerId)
+    }
     event.preventDefault()
     strip.scrollLeft = clampFilmstripScroll(strip, filmstripDragStartScrollLeft - deltaX)
+
+    const now = event.timeStamp || performance.now()
+    const dt = now - filmstripLastMoveTime
+    if (dt > 0) {
+      // Pointer moves +x → scroll moves -x; velocity stored in scrollLeft space.
+      const sample = -(event.clientX - filmstripLastMoveX) / dt
+      filmstripScrollVelocity = filmstripScrollVelocity * 0.6 + sample * 0.4
+    }
+    filmstripLastMoveX = event.clientX
+    filmstripLastMoveTime = now
   }
 }
 
@@ -336,6 +411,16 @@ function handleFilmstripPointerEnd(event: PointerEvent) {
       suppressFilmstripClick = false
       suppressFilmstripClickTimer = null
     }, 180)
+
+    // If the last sample is too old, the finger paused before release — no flick.
+    const now = event.timeStamp || performance.now()
+    if (now - filmstripLastMoveTime > 80) {
+      filmstripScrollVelocity = 0
+    }
+
+    if (event.type === 'pointerup') {
+      startFilmstripInertia()
+    }
   }
 
   if (strip?.hasPointerCapture(event.pointerId)) {
@@ -416,18 +501,6 @@ function categoryArtworkCount(catId: string) {
   return categoryArtworkCounts.value.get(catId) ?? 0
 }
 
-function formatDate(value: number | string | Date | null | undefined): string {
-  if (!value) {
-    return '—'
-  }
-  const date = typeof value === 'object' ? value : new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return '—'
-  }
-  const lang = locale.value === 'en' ? 'en-US' : locale.value
-  return date.toLocaleDateString(lang, { year: 'numeric', month: 'short', day: '2-digit' })
-}
-
 function onKeydown(event: KeyboardEvent) {
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
     return
@@ -450,6 +523,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
+  cancelFilmstripInertia()
   if (suppressFilmstripClickTimer !== null) {
     window.clearTimeout(suppressFilmstripClickTimer)
   }
@@ -611,8 +685,6 @@ watch(() => route.query.category, () => {
               <span class="caption-sep" aria-hidden="true">/</span>
               <span>{{ currentArtwork.width }} × {{ currentArtwork.height }}</span>
             </template>
-            <span class="caption-sep" aria-hidden="true">/</span>
-            <span>{{ formatDate(currentArtwork.createdAt) }}</span>
           </p>
           <p v-if="localizedDescription(currentArtwork)" class="caption-desc">
             {{ localizedDescription(currentArtwork) }}
@@ -686,7 +758,7 @@ watch(() => route.query.category, () => {
 @media (max-width: 880px) {
   .hall {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: 1fr;
   }
 }
 
@@ -936,18 +1008,7 @@ watch(() => route.query.category, () => {
 }
 
 @media (max-width: 880px) {
-  .index {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem 1rem;
-    padding: 4.4rem 1.2rem 1rem;
-  }
-  .index-brand { padding: 0; margin: 0 1rem 0 0; }
-  .index-brand::after { display: none; }
-  .index-list { display: flex; flex-wrap: wrap; gap: 0.2rem 0.5rem; }
-  .index-item { padding: 0.3rem 0.4rem; }
-  .index-series { display: none; }
+  .index { display: none; }
 }
 
 /* ───── Stage ───── */
@@ -964,7 +1025,7 @@ watch(() => route.query.category, () => {
 }
 
 @media (max-width: 880px) {
-  .stage { padding: 1rem 1.2rem 1rem; }
+  .stage { padding: 4rem 1.2rem 1rem; }
 }
 
 .stage-canvas {
@@ -1006,7 +1067,6 @@ watch(() => route.query.category, () => {
 .stage-image {
   position: relative;
   display: block;
-  animation: paint 0.6s cubic-bezier(.2, .8, .2, 1) both;
 }
 
 .stage-image::before,
@@ -1033,17 +1093,13 @@ watch(() => route.query.category, () => {
   border-right: 1px solid #16181f;
 }
 
-@keyframes paint {
-  0% { opacity: 0; transform: translateY(10px) scale(0.985); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-
 .stage-image img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
   object-position: center;
+  border-radius: 10px;
 }
 
 .stage-nav {
@@ -1136,39 +1192,87 @@ watch(() => route.query.category, () => {
 
 .caption-counter {
   position: relative;
-  display: inline-flex;
-  align-items: flex-end;
+  display: inline-grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
   font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
   font-style: italic;
   font-weight: 500;
-  line-height: 0.85;
+  line-height: 1;
   white-space: nowrap;
   font-feature-settings: "lnum" 1;
+  min-width: 5.4rem;
+  min-height: 4.2rem;
 }
 
 .caption-counter em {
+  grid-column: 1;
+  grid-row: 1;
   font-style: italic;
-}
-
-.caption-counter-current {
-  font-size: 2.6rem;
-  color: #8a1827;
-  letter-spacing: 0.01em;
+  display: inline-block;
 }
 
 .caption-counter-total {
-  font-size: 1.05rem;
-  color: #6c7384;
+  align-self: end;
+  justify-self: end;
+  font-size: 3.4rem;
+  font-weight: 400;
+  color: rgba(108, 115, 132, 0.32);
   letter-spacing: 0.04em;
-  margin-left: -0.42em;
-  transform: translateY(0.1em);
+  z-index: 1;
+}
+
+.caption-counter-current {
+  align-self: start;
+  justify-self: start;
+  font-size: 2.6rem;
+  font-weight: 600;
+  color: #8a1827;
+  letter-spacing: 0.01em;
+  z-index: 2;
+  transform: translate(-0.05em, -0.1em);
+  text-shadow: 0 1px 0 rgba(248, 247, 247, 0.85);
 }
 
 @media (max-width: 720px) {
-  .caption { grid-template-columns: 1fr; }
-  .caption-counter { justify-self: end; }
-  .caption-counter-current { font-size: 2rem; }
-  .caption-counter-total { font-size: 0.9rem; }
+  .caption {
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.9rem 0.4rem 0.4rem;
+  }
+  .caption-counter {
+    display: inline-flex;
+    align-items: baseline;
+    grid-template-columns: none;
+    grid-template-rows: none;
+    min-width: 0;
+    min-height: 0;
+    line-height: 1;
+    font-style: italic;
+    justify-self: end;
+  }
+  .caption-counter em {
+    align-self: auto;
+    justify-self: auto;
+    transform: none;
+    text-shadow: none;
+  }
+  .caption-counter-current {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #8a1827;
+  }
+  .caption-counter-total {
+    font-size: 0.92rem;
+    color: #6c7384;
+    margin-left: 0.18rem;
+  }
+  .caption-counter-total::before {
+    content: '/';
+    color: #a7969a;
+    margin-right: 0.18rem;
+  }
 }
 
 /* ───── Filmstrip ───── */
@@ -1211,13 +1315,20 @@ watch(() => route.query.category, () => {
   height: 70px;
   background: #efece9;
   border: 0;
+  border-radius: 6px;
   padding: 0;
   cursor: pointer;
   overflow: hidden;
   filter: grayscale(0.4);
   opacity: 0.6;
   transform-origin: center bottom;
-  transition: filter 0.5s ease, opacity 0.5s ease, transform 0.5s cubic-bezier(.2, .8, .2, 1);
+  transition:
+    filter 0.5s ease,
+    opacity 0.5s ease,
+    transform 0.5s cubic-bezier(.2, .8, .2, 1),
+    box-shadow 0.4s ease,
+    width 0.4s cubic-bezier(.2, .8, .2, 1),
+    height 0.4s cubic-bezier(.2, .8, .2, 1);
 }
 
 .film-strip.is-dragging .film-thumb {
@@ -1228,6 +1339,7 @@ watch(() => route.query.category, () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: inherit;
 }
 
 .film-thumb:hover {
@@ -1241,8 +1353,8 @@ watch(() => route.query.category, () => {
   filter: grayscale(0);
   width: 70px;
   height: 88px;
-  outline: 1px solid #8a1827;
-  outline-offset: 3px;
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px #f8f7f7, 0 0 0 4px #8a1827;
 }
 
 .film-empty {

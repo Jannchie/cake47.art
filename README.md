@@ -73,3 +73,24 @@ bun run preview
 ```
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+## Production Data Sync
+
+Use the one-off sync script only when bootstrapping production from local data.
+It replaces production business data from `.data/db/sqlite.db` and uploads `.data/blob` objects to R2.
+It does not sync `_hub_migrations`.
+
+Dry run:
+
+```bash
+pnpm sync:prod
+```
+
+Production run:
+
+```bash
+pnpm build:cloudflare
+ALLOW_PROD_SYNC=1 pnpm sync:prod
+```
+
+The production run first exports a D1 backup into `.tmp/`, then uploads R2 objects, then imports the generated SQL into remote D1.

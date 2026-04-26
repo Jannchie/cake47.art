@@ -5,6 +5,7 @@ import { assertAdmin } from '~~/server/utils/auth'
 import { blob } from 'hub:blob'
 import { eq, like, tables, useDrizzle } from '~~/server/utils/drizzle'
 import { shortId, slugify } from '~~/server/utils/ids'
+import { readImageDimensions } from '~~/server/utils/image-metadata'
 
 type SeriesId =
   | 'original'
@@ -167,7 +168,7 @@ export default defineEventHandler(async (event) => {
 
   const summary = {
     series: { created: 0, existing: 0 },
-    artworks: { created: 0, existing: 0, missing: 0 },
+    artworks: { created: 0, existing: 0, updated: 0, missing: 0 },
     homeSlots: { set: 0, missing: 0 },
     selected: { set: 0, missing: 0 },
     carousel: { set: 0, missing: 0 },
@@ -217,18 +218,39 @@ export default defineEventHandler(async (event) => {
     }
     const storageKey = makeStorageKey(item.src)
     const existing = await db
-      .select({ id: tables.artworks.id })
+      .select({
+        id: tables.artworks.id,
+        width: tables.artworks.width,
+        height: tables.artworks.height,
+      })
       .from(tables.artworks)
       .where(eq(tables.artworks.storageKey, storageKey))
       .get()
     if (existing) {
       artworkBySrc.set(item.src, existing.id)
+      if (existing.width <= 0 || existing.height <= 0) {
+        const file = await readPublic(item.src)
+        const dimensions = file ? readImageDimensions(file.data) : null
+        if (dimensions) {
+          await db
+            .update(tables.artworks)
+            .set({ width: dimensions.width, height: dimensions.height })
+            .where(eq(tables.artworks.id, existing.id))
+            .run()
+          summary.artworks.updated++
+        }
+      }
       summary.artworks.existing++
       continue
     }
 
     const file = await readPublic(item.src)
     if (!file) {
+      summary.artworks.missing++
+      continue
+    }
+    const dimensions = readImageDimensions(file.data)
+    if (!dimensions) {
       summary.artworks.missing++
       continue
     }
@@ -246,6 +268,8 @@ export default defineEventHandler(async (event) => {
       url: `/api/files/${stored.pathname}`,
       mimeType: file.mime,
       sizeBytes: stored.size,
+      width: dimensions.width,
+      height: dimensions.height,
       titleEn: titleFromSrc(item.src),
       titleZh: '',
       titleJa: '',
