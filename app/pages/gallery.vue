@@ -122,6 +122,9 @@ const copy = computed(() => {
 })
 
 setHtmlLangByLocale()
+useHead({
+  htmlAttrs: { class: 'is-gallery-page' },
+})
 setSeoMetaByLocale({
   path: '/gallery',
   title: galleryTitle,

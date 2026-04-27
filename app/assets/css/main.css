@@ -84,7 +84,13 @@ body {
 }
 
 html {
+  overflow-y: scroll;
   scrollbar-color: #a8afbc #f8f7f7;
+}
+
+html.is-gallery-page,
+html.is-gallery-page body {
+  overflow-y: hidden;
 }
 
 ::-webkit-scrollbar {
