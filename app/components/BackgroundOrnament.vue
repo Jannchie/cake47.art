@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+const gridRef = ref<HTMLDivElement | null>(null)
 let cleanup: (() => void) | undefined
 
 interface Particle {
@@ -76,6 +77,19 @@ onMounted(() => {
 
   let lastTime = performance.now()
   let raf = 0
+  let scrollRaf = 0
+
+  function updateGridOffset() {
+    scrollRaf = 0
+    gridRef.value?.style.setProperty('--grid-scroll-y', `${-window.scrollY}px`)
+  }
+
+  function scheduleGridOffset() {
+    if (scrollRaf) {
+      return
+    }
+    scrollRaf = requestAnimationFrame(updateGridOffset)
+  }
 
   function tick(now: number) {
     raf = requestAnimationFrame(tick)
@@ -121,10 +135,14 @@ onMounted(() => {
   }
 
   raf = requestAnimationFrame(tick)
+  updateGridOffset()
+  window.addEventListener('scroll', scheduleGridOffset, { passive: true })
 
   cleanup = () => {
     cancelAnimationFrame(raf)
+    cancelAnimationFrame(scrollRaf)
     window.removeEventListener('resize', resize)
+    window.removeEventListener('scroll', scheduleGridOffset)
   }
 })
 
@@ -135,7 +153,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="bg-ornament" aria-hidden="true">
-    <div class="bg-ornament-grid" />
+    <div ref="gridRef" class="bg-ornament-grid" />
     <canvas ref="canvasRef" class="bg-ornament-canvas" />
   </div>
 </template>
@@ -149,7 +167,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-/* Manuscript / scroll fold guides — vertical, very faint, slow opacity breathing. */
+/* Manuscript / scroll fold guides — faint grid, slow opacity breathing. */
 .bg-ornament-grid {
   position: absolute;
   inset: 0;
@@ -158,9 +176,17 @@ onBeforeUnmount(() => {
     rgba(22, 24, 31, 0.05) 0,
     rgba(22, 24, 31, 0.05) 1px,
     transparent 1px,
-    transparent 168px
+    transparent 128px
+  ), repeating-linear-gradient(
+    to bottom,
+    rgba(22, 24, 31, 0.05) 0,
+    rgba(22, 24, 31, 0.05) 1px,
+    transparent 1px,
+    transparent 128px
   );
-  background-position: center top;
+  background-position:
+    center var(--grid-scroll-y, 0px),
+    center var(--grid-scroll-y, 0px);
   animation: gridBreathe 22s ease-in-out infinite;
   opacity: 0.7;
 }

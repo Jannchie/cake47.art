@@ -24,11 +24,9 @@ const copyByLocale: Record<Locale, {
   open: string
   ekac: string
   scrollCue: string
+  loadingSubtitle: string
   heroStudio: string
-  marqueeIllustration: string
-  marqueeCharacterDesign: string
-  marqueeArtist: string
-  marqueeSince: string
+  marqueeItems: readonly string[]
   archiveEyebrow: string
   archiveTitle: string
   archiveLead: string
@@ -53,11 +51,9 @@ const copyByLocale: Record<Locale, {
     open: '前往',
     ekac: 'Ekac',
     scrollCue: '向下浏览',
+    loadingSubtitle: '私期的画室',
     heroStudio: '私期作品集',
-    marqueeIllustration: '角色插画',
-    marqueeCharacterDesign: '原创与同人',
-    marqueeArtist: '私期',
-    marqueeSince: '精选存档',
+    marqueeItems: ['SNOWCAKE47', '插画作品集', '原创角色', '同人创作', '商业委托'],
     archiveEyebrow: '完整存档',
     archiveTitle: '作品集',
     archiveLead: '从同人到原创、从角色插画到设定稿，更多作品收录于完整作品集，按系列归档浏览。',
@@ -82,11 +78,9 @@ const copyByLocale: Record<Locale, {
     open: 'visit',
     ekac: 'Ekac',
     scrollCue: 'Scroll',
+    loadingSubtitle: 'snowcake47 Illustration',
     heroStudio: 'snowcake47 Archive',
-    marqueeIllustration: 'Character Illustration',
-    marqueeCharacterDesign: 'Original & Fan Works',
-    marqueeArtist: 'Shiki',
-    marqueeSince: 'Selected archive',
+    marqueeItems: ['SNOWCAKE47', 'Illustration Archive', 'Original Characters', 'Fan Works', 'Commission Work'],
     archiveEyebrow: 'Full archive',
     archiveTitle: 'Gallery',
     archiveLead: 'Browse the complete archive — fan works, original pieces, character illustrations, and concept sheets, all sorted by series.',
@@ -106,16 +100,14 @@ const copyByLocale: Record<Locale, {
     works: '作品',
     collection: 'カテゴリ',
     profile: '私期 / snowcake47',
-    profileBio: 'イラストレーター。いろんな店を食べ歩き、Google マップで容赦なく採点します。',
+    profileBio: 'イラストレーター。いろんな店を巡り、Google マップで容赦なく採点します。',
     contact: 'コンタクト',
     open: 'ひらく',
     ekac: 'Ekac',
     scrollCue: 'スクロール',
+    loadingSubtitle: '私期の画室',
     heroStudio: 'snowcake47 Archive',
-    marqueeIllustration: 'キャラクターイラスト',
-    marqueeCharacterDesign: 'オリジナルとファンアート',
-    marqueeArtist: '私期',
-    marqueeSince: 'セレクトアーカイブ',
+    marqueeItems: ['SNOWCAKE47', 'イラスト作品集', 'オリジナルキャラクター', 'ファンアート', '依頼作品'],
     archiveEyebrow: 'フルアーカイブ',
     archiveTitle: '作品集',
     archiveLead: 'ファンアートからオリジナル、キャラクターイラストから設定画まで。すべての作品をシリーズごとにアーカイブしています。',
@@ -134,7 +126,16 @@ const localeLinks = [
   { label: 'CN', full: '中文', href: '/zh-CN' },
 ]
 
-const socialLinks = [
+interface SocialLink {
+  label: string
+  handle: string
+  href: string
+  icon: string
+  accent: string
+  locales?: readonly Locale[]
+}
+
+const allSocialLinks: SocialLink[] = [
   {
     label: 'X',
     handle: '@snowcake47',
@@ -143,11 +144,26 @@ const socialLinks = [
     accent: '#16181f',
   },
   {
-    label: 'Pixiv',
-    handle: 'id / 3626004',
-    href: 'https://www.pixiv.net/users/3626004',
-    icon: 'simple-icons:pixiv',
-    accent: '#23496f',
+    label: 'Bluesky',
+    handle: '@snowcake47.bsky.social',
+    href: 'https://bsky.app/profile/snowcake47.bsky.social',
+    icon: 'simple-icons:bluesky',
+    accent: '#1185fe',
+  },
+  {
+    label: '米画师',
+    handle: 'id / 2397',
+    href: 'https://www.mihuashi.com/profiles/2397',
+    icon: 'lucide:palette',
+    accent: '#2f61a6',
+    locales: ['zh-CN'],
+  },
+  {
+    label: '小红书',
+    handle: 'id / 629e56300000000021029847',
+    href: 'https://www.rednote.com/user/profile/629e56300000000021029847',
+    icon: 'simple-icons:xiaohongshu',
+    accent: '#ff2442',
   },
   {
     label: 'Weibo',
@@ -157,6 +173,10 @@ const socialLinks = [
     accent: '#5e0f1c',
   },
 ]
+
+const socialLinks = computed(() =>
+  allSocialLinks.filter(link => !link.locales || link.locales.includes(locale.value)),
+)
 
 interface HomeSlotPayload {
   url: string
@@ -413,7 +433,7 @@ onBeforeUnmount(() => {
 
 <template>
   <main class="portfolio-shell" :class="{ 'is-mounted': mounted }">
-    <LoadingOverlay :subtitle="copy.heroStudio" />
+    <LoadingOverlay :subtitle="copy.loadingSubtitle" />
     <BackgroundOrnament />
     <div class="grain-overlay" aria-hidden="true" />
 
@@ -469,7 +489,10 @@ onBeforeUnmount(() => {
       <div class="hero-marquee" aria-hidden="true">
         <div class="hero-marquee-track">
           <span v-for="i in 12" :key="i">
-            {{ copy.marqueeIllustration }} <em>/</em> {{ copy.marqueeCharacterDesign }} <em>/</em> SNOWCAKE47 <em>/</em> {{ copy.marqueeArtist }} <em>/</em> {{ copy.marqueeSince }}
+            <template v-for="item in copy.marqueeItems" :key="`${i}-${item}`">
+              <span>{{ item }}</span>
+              <em>/</em>
+            </template>
           </span>
         </div>
       </div>
@@ -532,14 +555,12 @@ onBeforeUnmount(() => {
     </section>
 
     <section id="works" class="works">
-      <SectionFlow variant="corner" />
+      <SectionFlow variant="corner" mirror />
       <div class="section-head" data-reveal>
         <span class="section-num">02<template v-if="locale !== 'en'"> / Works</template></span>
         <h2 class="section-title">
           {{ copy.works }}
-          <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
-            <path d="M0,10 Q50,-5 100,10 T200,10" fill="none" stroke="#16181f" stroke-width="1" stroke-linecap="round" opacity="0.5" />
-          </svg>
+          <SectionTitleFlourish class="section-title-flourish" />
         </h2>
       </div>
 
@@ -608,9 +629,7 @@ onBeforeUnmount(() => {
         <span class="section-num">03<template v-if="locale !== 'en'"> / Ekac</template></span>
         <h2 class="section-title">
           {{ copy.ekac }}
-          <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
-            <path d="M0,10 Q50,-5 100,10 T200,10" fill="none" stroke="#8a1827" stroke-width="1" stroke-linecap="round" opacity="0.6" />
-          </svg>
+          <SectionTitleFlourish class="section-title-flourish" color="#8a1827" :alpha="0.68" />
         </h2>
       </div>
 
@@ -639,9 +658,7 @@ onBeforeUnmount(() => {
         <span class="section-num">04<template v-if="locale !== 'en'"> / Collection</template></span>
         <h2 class="section-title">
           {{ copy.collection }}
-          <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
-            <path d="M0,10 Q50,25 100,10 T200,10" fill="none" stroke="#16181f" stroke-width="1" stroke-linecap="round" opacity="0.5" />
-          </svg>
+          <SectionTitleFlourish class="section-title-flourish" variant="dip" />
         </h2>
       </div>
 
@@ -678,9 +695,7 @@ onBeforeUnmount(() => {
         <span class="section-num">05<template v-if="locale !== 'en'"> / Contact</template></span>
         <h2 class="section-title">
           {{ copy.contact }}
-          <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
-            <path d="M0,10 Q50,25 100,10 T200,10" fill="none" stroke="#16181f" stroke-width="1" stroke-linecap="round" opacity="0.5" />
-          </svg>
+          <SectionTitleFlourish class="section-title-flourish" variant="dip" />
         </h2>
       </div>
 
@@ -713,9 +728,7 @@ onBeforeUnmount(() => {
         <span class="section-num">06<template v-if="locale !== 'en'"> / Archive</template></span>
         <h2 class="section-title">
           {{ copy.archiveTitle }}
-          <svg class="section-title-flourish" viewBox="0 0 200 20" aria-hidden="true">
-            <path d="M0,10 Q50,-5 100,10 T200,10" fill="none" stroke="#8a1827" stroke-width="1" stroke-linecap="round" opacity="0.6" />
-          </svg>
+          <SectionTitleFlourish class="section-title-flourish" color="#8a1827" :alpha="0.68" />
         </h2>
       </div>
 
@@ -750,7 +763,7 @@ onBeforeUnmount(() => {
 
         <div class="archive-rule" aria-hidden="true">
           <span />
-          <em>cake47 archive · since 2014</em>
+          <em>snowcake47 archive</em>
           <span />
         </div>
       </div>
@@ -773,11 +786,7 @@ onBeforeUnmount(() => {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 18% 12%, #f4f0f1 0%, transparent 42%),
-    radial-gradient(circle at 86% 8%, #f7f5f6 0%, transparent 38%),
-    radial-gradient(circle at 78% 96%, rgba(138, 24, 39, 0.06) 0%, transparent 48%),
-    #f8f7f7;
+  background: #f8f7f7;
   color: #16181f;
   font-family: var(--font-body);
 }
@@ -814,21 +823,15 @@ onBeforeUnmount(() => {
   inset: 0;
   z-index: -1;
   background: rgba(248, 247, 247, 0);
-  backdrop-filter: blur(0);
-  -webkit-backdrop-filter: blur(0);
   border-bottom: 1px solid transparent;
   transition:
     background 0.3s ease,
-    backdrop-filter 0.3s ease,
-    -webkit-backdrop-filter 0.3s ease,
     border-color 0.3s ease;
   pointer-events: none;
 }
 
 .site-nav.is-scrolled::before {
-  background: rgba(248, 247, 247, 0.72);
-  backdrop-filter: blur(14px) saturate(1.08);
-  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+  background: rgba(248, 247, 247, 0.88);
   border-bottom-color: rgba(22, 24, 31, 0.06);
 }
 
@@ -983,8 +986,7 @@ onBeforeUnmount(() => {
   min-height: 0;
   width: 100%;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% 40%, #fbfafa 0%, #f3f2f3 70%, #ececed 100%);
+  background: #f8f7f7;
 }
 
 .hero-three {
@@ -1145,7 +1147,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   pointer-events: none;
   border-top: 1px solid rgba(42, 37, 48, 0.1);
-  background: rgba(248, 247, 247, 0.76);
+  border-bottom: 1px solid rgba(42, 37, 48, 0.1);
+  background: rgba(248, 247, 247, 0.9);
   padding: 0.76rem 0 calc(0.76rem + env(safe-area-inset-bottom));
   /* Parallax transform comes in via inline style; keep this layer free of
      other transforms so the inner track's animation isn't overridden. */
@@ -1155,7 +1158,7 @@ onBeforeUnmount(() => {
 .hero-marquee-track {
   display: flex;
   width: max-content;
-  gap: 2rem;
+  gap: 0.9rem;
   white-space: nowrap;
   animation: marquee 32s linear infinite;
   font-family: var(--font-display);
@@ -1582,9 +1585,6 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: var(--z-content);
   padding: 6rem 1.6rem;
-  background:
-    linear-gradient(180deg, transparent, rgba(238, 240, 243, 0.6), transparent),
-    radial-gradient(circle at 30% 50%, rgba(62, 72, 102, 0.10), transparent 60%);
 }
 
 .categories-grid {
@@ -1739,9 +1739,6 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: var(--z-content);
   padding: 6rem 1.6rem 8rem;
-  background:
-    radial-gradient(circle at 80% 20%, rgba(77, 114, 176, 0.12), transparent 60%),
-    radial-gradient(circle at 10% 80%, rgba(91, 139, 214, 0.1), transparent 60%);
 }
 
 .works .section-head,
@@ -1862,9 +1859,6 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: var(--z-content);
   padding: 6rem 1.6rem 7rem;
-  background:
-    radial-gradient(circle at 20% 30%, rgba(138, 24, 39, 0.08), transparent 55%),
-    radial-gradient(circle at 80% 75%, rgba(77, 114, 176, 0.08), transparent 55%);
 }
 
 .archive-card {
@@ -2039,8 +2033,8 @@ onBeforeUnmount(() => {
 .archive-cta-arrow {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
-  width: 56px;
+  justify-content: flex-start;
+  width: 64px;
   height: 18px;
   color: #fafafa;
   overflow: hidden;

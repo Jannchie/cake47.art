@@ -46,6 +46,8 @@ body {
 }
 
 [lang="zh-CN"] {
-  font-family: 'Shippori Mincho', 'Noto Serif SC', 'Noto Sans SC', 'Inter', serif;
+  --font-display: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', SimSun, 'Shippori Mincho', serif;
+  --font-body: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', SimSun, 'Shippori Mincho', serif;
+  font-family: var(--font-body);
 }
 </style>
