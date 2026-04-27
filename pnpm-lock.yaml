@@ -47,6 +47,9 @@ importers:
       three:
         specifier: ^0.184.0
         version: 0.184.0
+      thumbhash:
+        specifier: 0.1.1
+        version: 0.1.1
       unocss:
         specifier: ^66.6.8
         version: 66.6.8(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@unocss/webpack@66.6.8(webpack@5.100.2(esbuild@0.27.7)))(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -78,6 +81,9 @@ importers:
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
+      sharp:
+        specifier: 0.34.5
+        version: 0.34.5
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -5993,6 +5999,9 @@ packages:
 
   three@0.184.0:
     resolution: {integrity: sha512-wtTRjG92pM5eUg/KuUnHsqSAlPM296brTOcLgMRqEeylYTh/CdtvKUvCyyCQTzFuStieWxvZb8mVTMvdPyUpxg==}
+
+  thumbhash@0.1.1:
+    resolution: {integrity: sha512-kH5pKeIIBPQXAOni2AiY/Cu/NKdkFREdpH+TLdM0g6WA7RriCv0kPLgP731ady67MhTAqrVG/4mnEeibVuCJcg==}
 
   tiny-inflate@1.0.3:
     resolution: {integrity: sha512-pkY1fj1cKHb2seWDy0B16HeWyczlJA9/WW3u3c4z/NiWDsO3DOU5D7nhTLE9CF0yXv/QZFY7sEJmj24dK+Rrqw==}
@@ -13064,6 +13073,8 @@ snapshots:
       - react-native-b4a
 
   three@0.184.0: {}
+
+  thumbhash@0.1.1: {}
 
   tiny-inflate@1.0.3: {}
 

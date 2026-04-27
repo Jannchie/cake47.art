@@ -119,7 +119,7 @@ function toggleSeriesInForm(seriesId: string) {
 }
 
 const replaceFileInput = ref<HTMLInputElement | null>(null)
-const replacePending = ref<{ file: File; preview: string; width: number; height: number } | null>(null)
+const replacePending = ref<{ file: File; preview: string; width: number; height: number; thumbHash: string | null } | null>(null)
 const replacing = ref(false)
 
 function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
@@ -181,7 +181,10 @@ async function onPickReplaceFile(event: Event) {
     editError.value = t('imageOnly')
     return
   }
-  const dims = await readImageDimensions(file)
+  const [dims, thumbHash] = await Promise.all([
+    readImageDimensions(file),
+    createThumbHashFromFile(file),
+  ])
   if (dims.width === 0 || dims.height === 0) {
     editError.value = t('imageUnreadable')
     return
@@ -192,6 +195,7 @@ async function onPickReplaceFile(event: Event) {
     preview: URL.createObjectURL(file),
     width: dims.width,
     height: dims.height,
+    thumbHash,
   }
 }
 
@@ -216,6 +220,7 @@ async function submitEdit() {
       formData.append('file', replacePending.value.file, replacePending.value.file.name)
       formData.append('width', String(replacePending.value.width))
       formData.append('height', String(replacePending.value.height))
+      formData.append('thumbHash', replacePending.value.thumbHash ?? '')
       await adminApi.fetch(`/api/admin/artworks/${editingId.value}/replace-image`, {
         method: 'POST',
         body: formData,

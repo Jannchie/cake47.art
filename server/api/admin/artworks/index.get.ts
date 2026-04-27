@@ -50,6 +50,7 @@ export default defineEventHandler(async (event) => {
       height: tables.artworks.height,
       mimeType: tables.artworks.mimeType,
       sizeBytes: tables.artworks.sizeBytes,
+      thumbHash: tables.artworks.thumbHash,
       objectPosition: tables.artworks.objectPosition,
       createdAt: tables.artworks.createdAt,
     })

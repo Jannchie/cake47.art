@@ -58,6 +58,7 @@ export default defineEventHandler(async (event) => {
       width: tables.artworks.width,
       height: tables.artworks.height,
       mimeType: tables.artworks.mimeType,
+      thumbHash: tables.artworks.thumbHash,
       objectPosition: tables.artworks.objectPosition,
       sortOrder: tables.artworkSeriesLinks.sortOrder,
       isPrimary: tables.artworkSeriesLinks.isPrimary,

@@ -56,6 +56,7 @@ export interface ArtworkItem {
   height: number
   mimeType: string
   sizeBytes: number
+  thumbHash: string | null
   objectPosition: string | null
   createdAt: number
 }
@@ -74,6 +75,7 @@ export interface HomeSlotData {
   objectPosition: string | null
   width: number
   height: number
+  thumbHash: string | null
   position: number
 }
 

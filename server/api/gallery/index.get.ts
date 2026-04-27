@@ -37,18 +37,27 @@ export default defineEventHandler(async () => {
 
   const covers = coverIds.length > 0
     ? await db
-        .select({ id: tables.artworks.id, url: tables.artworks.url, sizeBytes: tables.artworks.sizeBytes })
+        .select({
+          id: tables.artworks.id,
+          url: tables.artworks.url,
+          sizeBytes: tables.artworks.sizeBytes,
+          thumbHash: tables.artworks.thumbHash,
+        })
         .from(tables.artworks)
         .where(sql`${tables.artworks.id} in ${coverIds}`)
         .all()
     : []
-  const coverMap = new Map(covers.map(c => [c.id, versionBlobUrl(c.url, c.sizeBytes)]))
+  const coverMap = new Map(covers.map(c => [c.id, {
+    url: versionBlobUrl(c.url, c.sizeBytes),
+    thumbHash: c.thumbHash,
+  }]))
 
   return {
     categories: categoriesRows,
     series: seriesRows.map(s => ({
       ...s,
-      coverUrl: s.coverArtworkId ? coverMap.get(s.coverArtworkId) ?? null : null,
+      coverUrl: s.coverArtworkId ? coverMap.get(s.coverArtworkId)?.url ?? null : null,
+      coverThumbHash: s.coverArtworkId ? coverMap.get(s.coverArtworkId)?.thumbHash ?? null : null,
     })),
   }
 })

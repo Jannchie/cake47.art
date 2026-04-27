@@ -23,6 +23,7 @@ export default defineEventHandler(async () => {
       objectPosition: tables.artworks.objectPosition,
       width: tables.artworks.width,
       height: tables.artworks.height,
+      thumbHash: tables.artworks.thumbHash,
       position: tables.homeSlots.position,
     })
     .from(tables.homeSlots)

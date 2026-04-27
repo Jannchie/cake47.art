@@ -21,6 +21,7 @@ interface PendingItem {
   result?: UploadResult
   width: number
   height: number
+  thumbHash: string | null
   seriesId: string
   titleEn: string
   titleZh: string
@@ -48,7 +49,10 @@ function readImageDimensions(file: File): Promise<{ width: number; height: numbe
 async function addFiles(files: FileList | File[]) {
   const arr = Array.from(files).filter(f => f.type.startsWith('image/'))
   for (const file of arr) {
-    const { width, height } = await readImageDimensions(file)
+    const [{ width, height }, thumbHash] = await Promise.all([
+      readImageDimensions(file),
+      createThumbHashFromFile(file),
+    ])
     pending.value.push({
       id: tempId(),
       file,
@@ -57,6 +61,7 @@ async function addFiles(files: FileList | File[]) {
       progress: 0,
       width,
       height,
+      thumbHash,
       seriesId: seriesList.value[0]?.id ?? '',
       titleEn: file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '),
       titleZh: '',
@@ -111,6 +116,7 @@ async function uploadOne(item: PendingItem) {
         width: item.width,
         height: item.height,
         sizeBytes: result.size,
+        thumbHash: item.thumbHash,
         titleEn: item.titleEn,
         titleZh: item.titleZh,
         titleJa: item.titleJa,

@@ -27,6 +27,7 @@ export default defineEventHandler(async (event) => {
   const file = formData.get('file')
   const widthRaw = formData.get('width')
   const heightRaw = formData.get('height')
+  const thumbHashRaw = formData.get('thumbHash')
 
   if (!(file instanceof File)) {
     throw createError({ statusCode: 400, statusMessage: 'No file provided' })
@@ -61,6 +62,7 @@ export default defineEventHandler(async (event) => {
       sizeBytes: stored.size,
       width,
       height,
+      thumbHash: typeof thumbHashRaw === 'string' && thumbHashRaw ? thumbHashRaw : null,
     })
     .where(eq(tables.artworks.id, id))
     .run()
@@ -77,5 +79,6 @@ export default defineEventHandler(async (event) => {
     size: stored.size,
     width,
     height,
+    thumbHash: typeof thumbHashRaw === 'string' && thumbHashRaw ? thumbHashRaw : null,
   }
 })

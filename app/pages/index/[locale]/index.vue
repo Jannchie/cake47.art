@@ -188,6 +188,7 @@ interface HomeSlotPayload {
   titleEn: string
   titleJa: string
   objectPosition: string | null
+  thumbHash: string | null
 }
 
 interface SlotRender {
@@ -195,6 +196,7 @@ interface SlotRender {
   category: ArtworkCategoryId
   seriesLabel: string
   objectPosition?: string
+  thumbHash: string | null
 }
 
 const { data: layoutData } = await useFetch<{ slots: Record<string, HomeSlotPayload>; selected: HomeSlotPayload[] }>('/api/home/layout', {
@@ -217,6 +219,7 @@ function payloadToSlot(p: HomeSlotPayload): SlotRender {
     category: p.categoryId as ArtworkCategoryId,
     seriesLabel: pickByLocale(p.seriesNameZh, p.seriesNameEn, p.seriesNameJa),
     objectPosition: p.objectPosition ?? undefined,
+    thumbHash: p.thumbHash,
   }
 }
 
@@ -591,7 +594,7 @@ onBeforeUnmount(() => {
           <span class="work-feature-series">{{ categoryText(heroFeature.category) }}</span>
         </header>
 
-        <div class="work-feature-frame">
+        <div class="work-feature-frame" :style="thumbHashBackgroundStyle(heroFeature.thumbHash)">
           <img :src="heroFeature.src" :alt="heroFeature.seriesLabel" decoding="async">
         </div>
 
@@ -612,7 +615,7 @@ onBeforeUnmount(() => {
           data-reveal
           :style="{ '--reveal-delay': `${(index % 3) * 90}ms` }"
         >
-          <div class="work-frame">
+          <div class="work-frame" :style="thumbHashBackgroundStyle(artwork.thumbHash)">
             <img :src="artwork.src" :alt="artwork.seriesLabel" decoding="async">
           </div>
           <figcaption class="work-caption">
@@ -633,7 +636,12 @@ onBeforeUnmount(() => {
         </h2>
       </div>
 
-      <figure v-if="ekacArtworks[0]" class="ekac-main" data-reveal>
+      <figure
+        v-if="ekacArtworks[0]"
+        class="ekac-main"
+        data-reveal
+        :style="thumbHashBackgroundStyle(ekacArtworks[0].thumbHash)"
+      >
         <img :src="ekacArtworks[0].src" :alt="copy.ekac" decoding="async">
       </figure>
 
@@ -641,6 +649,7 @@ onBeforeUnmount(() => {
         <figure
           v-for="artwork in ekacArtworks.slice(1)"
           :key="artwork.src"
+          :style="thumbHashBackgroundStyle(artwork.thumbHash)"
         >
           <img
             :src="artwork.src"
@@ -670,7 +679,7 @@ onBeforeUnmount(() => {
           data-reveal
           :style="{ '--reveal-delay': `${idx * 90}ms` }"
         >
-          <div class="category-media">
+          <div class="category-media" :style="thumbHashBackgroundStyle(item.artwork.thumbHash)">
             <img
               :src="item.artwork.src"
               :alt="item.artwork.seriesLabel"
@@ -1380,6 +1389,8 @@ onBeforeUnmount(() => {
   z-index: 2;
   overflow: visible;
   background: #fff;
+  background-position: center;
+  background-size: cover;
   border: 1px solid rgba(22, 24, 31, 0.12);
   aspect-ratio: 16 / 9;
   outline: 1px solid rgba(250, 250, 250, 0.9);
@@ -1465,6 +1476,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   border-radius: 6px;
   background: #fff;
+  background-position: center;
+  background-size: cover;
   border: 1px solid rgba(42, 37, 48, 0.08);
   box-shadow: 0 8px 30px rgba(42, 37, 48, 0.08);
 }
@@ -1510,6 +1523,8 @@ onBeforeUnmount(() => {
   max-width: 540px;
   overflow: hidden;
   background: #fff;
+  background-position: center;
+  background-size: cover;
   border: 1px solid rgba(42, 37, 48, 0.10);
   box-shadow: 0 22px 50px -16px rgba(42, 37, 48, 0.18);
 }
@@ -1558,6 +1573,8 @@ onBeforeUnmount(() => {
   aspect-ratio: 3 / 4;
   overflow: hidden;
   background: #fff;
+  background-position: center;
+  background-size: cover;
   border: 1px solid rgba(42, 37, 48, 0.08);
   box-shadow: 0 10px 26px rgba(42, 37, 48, 0.10);
   transition: transform 0.5s cubic-bezier(.2, .8, .2, 1);
@@ -1611,6 +1628,9 @@ onBeforeUnmount(() => {
   position: relative;
   aspect-ratio: 4 / 5;
   overflow: hidden;
+  background-color: #efece9;
+  background-position: center;
+  background-size: cover;
 }
 
 .category-media img {

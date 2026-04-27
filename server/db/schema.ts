@@ -49,6 +49,7 @@ export const artworks = sqliteTable('artworks', {
   width: integer('width').notNull().default(0),
   height: integer('height').notNull().default(0),
   sizeBytes: integer('size_bytes').notNull().default(0),
+  thumbHash: text('thumb_hash'),
   objectPosition: text('object_position'),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()

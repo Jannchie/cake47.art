@@ -27,6 +27,7 @@ interface SeriesRow {
   descriptionJa: string
   coverArtworkId: string | null
   coverUrl: string | null
+  coverThumbHash: string | null
   sortOrder: number
   artworkCount: number
 }
@@ -49,6 +50,7 @@ interface ArtworkRow {
   width: number
   height: number
   mimeType: string
+  thumbHash: string | null
   objectPosition: string | null
   isPrimary: boolean
   sortOrder: number
@@ -639,7 +641,12 @@ watch(() => route.query.category, () => {
           <p>{{ copy.empty }}</p>
         </div>
 
-        <div v-else :key="currentArtwork.id" class="stage-image">
+        <div
+          v-else
+          :key="currentArtwork.id"
+          class="stage-image"
+          :style="thumbHashBackgroundStyle(currentArtwork.thumbHash)"
+        >
           <img
             :src="currentArtwork.url"
             :alt="localizedTitle(currentArtwork)"
@@ -719,6 +726,7 @@ watch(() => route.query.category, () => {
             :class="{ 'is-active': idx === currentIndex }"
             :data-thumb-idx="idx"
             :title="localizedTitle(a)"
+            :style="thumbHashAverageColorStyle(a.thumbHash)"
             @click="handleFilmThumbClick($event, idx)"
           >
             <img :src="a.url" :alt="localizedTitle(a)" loading="lazy" draggable="false" :style="{ objectPosition: a.objectPosition ?? '50% 30%' }">
@@ -1070,6 +1078,9 @@ watch(() => route.query.category, () => {
 .stage-image {
   position: relative;
   display: block;
+  background-color: #efece9;
+  background-position: center;
+  background-size: cover;
   animation: paint 0.55s cubic-bezier(.2, .8, .2, 1) both;
 }
 
