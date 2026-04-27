@@ -1,84 +1,70 @@
-# Nuxt Minimal Starter
+# cake47.art
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Nuxt 4 art portfolio and gallery with a token-protected admin area. Local data uses NuxtHub SQLite/blob storage; production uses Cloudflare D1/R2.
 
 ## Setup
 
-Make sure to install dependencies:
-
 ```bash
-# npm
-npm install
-
-# pnpm
+corepack enable
 pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
+cp .env.example .env
 ```
 
-## Development Server
+Set `NUXT_ADMIN_TOKEN` for admin APIs. Fill the Cloudflare variables in `.env` before production migration, sync, or deployment.
 
-Start the development server on `http://localhost:3000`:
+## Development
 
 ```bash
-# npm
-npm run dev
-
-# pnpm
 pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+Open `http://localhost:3000`. Admin pages are under `/admin`.
 
-Build the application for production:
+## Database
 
 ```bash
-# npm
-npm run build
+pnpm db:generate
+pnpm db:migrate
+```
 
-# pnpm
+For production D1 migrations:
+
+```bash
+pnpm db:migrate:production
+```
+
+## Build and Deploy
+
+```bash
 pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
+pnpm preview
 ```
 
-Locally preview production build:
+For Cloudflare Workers:
 
 ```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
+pnpm build:cloudflare
+pnpm deploy:cloudflare
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## ThumbHash Backfill
+
+Local:
+
+```bash
+pnpm thumbhash:backfill
+```
+
+Production:
+
+```bash
+pnpm build:cloudflare
+ALLOW_PROD_BACKFILL=1 pnpm thumbhash:backfill -- --remote
+```
 
 ## Production Data Sync
 
-Use the one-off sync script only when bootstrapping production from local data.
-It replaces production business data from `.data/db/sqlite.db` and uploads `.data/blob` objects to R2.
-It does not sync `_hub_migrations`.
+Use only when bootstrapping production from local data. It replaces production business data from `.data/db/sqlite.db` and uploads `.data/blob` objects to R2. It does not sync `_hub_migrations`.
 
 Dry run:
 
@@ -93,4 +79,4 @@ pnpm build:cloudflare
 ALLOW_PROD_SYNC=1 pnpm sync:prod
 ```
 
-The production run first exports a D1 backup into `.tmp/`, then uploads R2 objects, then imports the generated SQL into remote D1.
+The production run writes a D1 backup and generated SQL under `.tmp/`.
