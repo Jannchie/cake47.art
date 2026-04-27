@@ -39,7 +39,7 @@ const copyByLocale: Record<Locale, {
     navWorks: '作品',
     navProfile: '关于',
     navContact: '联络',
-    navEkac: 'Ekac',
+    navEkac: '角色设定',
     navCollection: '创作方向',
     navArchive: '作品集',
     brandSubtitle: 'snowcake47 / 私期',
@@ -49,7 +49,7 @@ const copyByLocale: Record<Locale, {
     profileBio: '插画师。兴趣是吃各种店，并在 Google Maps 上无情评分。',
     contact: '联络',
     open: '前往',
-    ekac: 'Ekac',
+    ekac: '角色设定',
     scrollCue: '向下浏览',
     loadingSubtitle: '私期的画室',
     heroStudio: '私期作品集',
@@ -66,7 +66,7 @@ const copyByLocale: Record<Locale, {
     navWorks: 'Works',
     navProfile: 'Profile',
     navContact: 'Contact',
-    navEkac: 'Ekac',
+    navEkac: 'Character',
     navCollection: 'Collection',
     navArchive: 'Gallery',
     brandSubtitle: 'snowcake47 / Shiki',
@@ -76,7 +76,7 @@ const copyByLocale: Record<Locale, {
     profileBio: 'Illustrator. Eats through every kind of place, then scores them mercilessly on Google Maps.',
     contact: 'Contact',
     open: 'visit',
-    ekac: 'Ekac',
+    ekac: 'Character Sheet',
     scrollCue: 'Scroll',
     loadingSubtitle: 'snowcake47 Illustration',
     heroStudio: 'snowcake47 Archive',
@@ -93,7 +93,7 @@ const copyByLocale: Record<Locale, {
     navWorks: '作品',
     navProfile: 'プロフィール',
     navContact: 'コンタクト',
-    navEkac: 'Ekac',
+    navEkac: 'キャラ設定',
     navCollection: 'カテゴリ',
     navArchive: '作品集',
     brandSubtitle: 'snowcake47 / 私期',
@@ -103,7 +103,7 @@ const copyByLocale: Record<Locale, {
     profileBio: 'イラストレーター。いろんな店を巡り、Google マップで容赦なく採点します。',
     contact: 'コンタクト',
     open: 'ひらく',
-    ekac: 'Ekac',
+    ekac: 'キャラ設定',
     scrollCue: 'スクロール',
     loadingSubtitle: '私期の画室',
     heroStudio: 'snowcake47 Archive',
@@ -629,7 +629,7 @@ onBeforeUnmount(() => {
     <section id="ekac" class="ekac">
       <SectionFlow variant="split" />
       <div class="section-head" data-reveal>
-        <span class="section-num">03<template v-if="locale !== 'en'"> / Ekac</template></span>
+        <span class="section-num">03<template v-if="locale !== 'en'"> / Character</template></span>
         <h2 class="section-title">
           {{ copy.ekac }}
           <SectionTitleFlourish class="section-title-flourish" color="#8a1827" :alpha="0.68" />
@@ -671,28 +671,59 @@ onBeforeUnmount(() => {
         </h2>
       </div>
 
-      <div class="categories-grid">
+      <div class="discipline-list">
         <article
           v-for="(item, idx) in categoryShowcases"
           :key="item.category.id"
-          class="category-card"
+          class="discipline"
+          :class="{ 'is-mirrored': idx % 2 === 1 }"
           data-reveal
-          :style="{ '--reveal-delay': `${idx * 90}ms` }"
+          :style="{ '--reveal-delay': `${idx * 110}ms` }"
         >
-          <div class="category-media" :style="thumbHashBackgroundStyle(item.artwork.thumbHash)">
-            <img
-              :src="item.artwork.src"
-              :alt="item.artwork.seriesLabel"
-              decoding="async"
-              :style="{ objectPosition: item.artwork.objectPosition ?? '50% 18%' }"
-            >
-            <span class="category-glow" aria-hidden="true" />
+          <span class="discipline-bignum" aria-hidden="true">{{ String(idx + 1).padStart(2, '0') }}</span>
+
+          <div class="discipline-media">
+            <div class="discipline-media-frame" :style="thumbHashBackgroundStyle(item.artwork.thumbHash)">
+              <img
+                :src="item.artwork.src"
+                :alt="item.artwork.seriesLabel"
+                decoding="async"
+                :style="{ objectPosition: item.artwork.objectPosition ?? '50% 18%' }"
+              >
+              <span class="discipline-media-sheen" aria-hidden="true" />
+            </div>
+            <span class="discipline-media-corner discipline-media-corner-tl" aria-hidden="true">
+              <span /><span />
+            </span>
+            <span class="discipline-media-corner discipline-media-corner-br" aria-hidden="true">
+              <span /><span />
+            </span>
+            <span class="discipline-stamp" aria-hidden="true">
+              <small>Discipline</small>
+              <strong>0{{ idx + 1 }}</strong>
+            </span>
           </div>
-          <div class="category-meta">
-            <span class="category-num">0{{ idx + 1 }}</span>
-            <Icon :name="item.category.icon" class="category-icon" />
-            <h3>{{ item.category.label[locale] }}</h3>
-            <p>{{ item.category.description[locale] }}</p>
+
+          <div class="discipline-meta">
+            <span class="discipline-eyebrow">
+              <span class="discipline-eyebrow-mark" aria-hidden="true">◆</span>
+              <em>discipline</em>
+              <span class="discipline-eyebrow-rule" aria-hidden="true" />
+              <strong>0{{ idx + 1 }} / 0{{ categoryShowcases.length }}</strong>
+            </span>
+
+            <h3 class="discipline-title">
+              <Icon :name="item.category.icon" class="discipline-icon" aria-hidden="true" />
+              <span class="discipline-title-text">{{ item.category.label[locale] }}</span>
+            </h3>
+
+            <p class="discipline-desc">{{ item.category.description[locale] }}</p>
+
+            <div class="discipline-foot" aria-hidden="true">
+              <span class="discipline-foot-rule" />
+              <span class="discipline-foot-label">{{ item.category.id }}</span>
+              <span class="discipline-foot-rule" />
+            </div>
           </div>
         </article>
       </div>
@@ -1597,99 +1628,390 @@ onBeforeUnmount(() => {
   }
 }
 
-/* ───── Categories ───── */
+/* ───── Categories (Disciplines) ───── */
 .categories {
   position: relative;
   z-index: var(--z-content);
-  padding: 6rem 1.6rem;
+  padding: 6rem 1.6rem 7rem;
 }
 
-.categories-grid {
+.discipline-list {
   display: grid;
-  gap: 1.6rem;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(3rem, 6vw, 5.2rem);
+  max-width: 1280px;
+  margin: 0 auto;
 }
 
-.category-card {
+.discipline {
+  --media-aspect: 4 / 5;
   position: relative;
-  border-radius: 8px;
-  background: #fafafa;
-  border: 1px solid rgba(42, 37, 48, 0.08);
-  overflow: hidden;
-  transition: transform 0.5s cubic-bezier(.2, .8, .2, 1), box-shadow 0.5s ease;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: center;
+  padding: 1rem 0;
 }
 
-.category-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 26px 50px rgba(42, 37, 48, 0.15);
+@media (min-width: 880px) {
+  .discipline {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: clamp(2.4rem, 5vw, 4.4rem);
+    padding: 1.5rem 0;
+  }
+  .discipline.is-mirrored .discipline-media { order: 2; }
+  .discipline.is-mirrored .discipline-meta { order: 1; }
 }
 
-.category-media {
+/* Big outline numeral floating behind the layout */
+.discipline-bignum {
+  position: absolute;
+  top: -0.18em;
+  right: -0.04em;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-style: italic;
+  font-size: clamp(11rem, 22vw, 22rem);
+  line-height: 0.78;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 1.4px rgba(22, 24, 31, 0.12);
+  text-stroke: 1.4px rgba(22, 24, 31, 0.12);
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  transition: transform 0.9s cubic-bezier(.2, .8, .2, 1), -webkit-text-stroke-color 0.6s ease;
+}
+
+.discipline.is-mirrored .discipline-bignum {
+  right: auto;
+  left: -0.04em;
+}
+
+.discipline:hover .discipline-bignum {
+  transform: translate3d(8px, -6px, 0);
+  -webkit-text-stroke-color: rgba(138, 24, 39, 0.35);
+}
+
+.discipline.is-mirrored:hover .discipline-bignum {
+  transform: translate3d(-8px, -6px, 0);
+}
+
+/* Media column */
+.discipline-media {
   position: relative;
-  aspect-ratio: 4 / 5;
+  z-index: 1;
+  isolation: isolate;
+}
+
+.discipline-media-frame {
+  position: relative;
   overflow: hidden;
+  aspect-ratio: var(--media-aspect);
   background-color: #efece9;
   background-position: center;
   background-size: cover;
+  border: 1px solid rgba(22, 24, 31, 0.16);
+  outline: 1px solid rgba(250, 250, 250, 0.92);
+  outline-offset: 6px;
+  box-shadow:
+    0 30px 60px -28px rgba(22, 24, 31, 0.32),
+    inset 0 0 0 1px rgba(250, 250, 250, 0.55);
+  transition: transform 0.6s cubic-bezier(.2, .8, .2, 1), box-shadow 0.6s ease;
 }
 
-.category-media img {
+.discipline-media-frame img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.8s cubic-bezier(.2, .8, .2, 1);
+  transition: transform 1.1s cubic-bezier(.2, .8, .2, 1), filter 0.6s ease;
+  will-change: transform;
 }
 
-.category-card:hover .category-media img { transform: scale(1.07); }
+.discipline:hover .discipline-media-frame {
+  box-shadow:
+    0 38px 70px -30px rgba(22, 24, 31, 0.42),
+    inset 0 0 0 1px rgba(250, 250, 250, 0.7);
+}
 
-.category-glow {
+.discipline:hover .discipline-media-frame img {
+  transform: scale(1.06);
+}
+
+/* Diagonal sheen sweep on hover */
+.discipline-media-sheen {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 50%, rgba(42, 37, 48, 0.5));
-  opacity: 0.6;
+  background: linear-gradient(110deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.32) 48%,
+    rgba(255, 255, 255, 0) 58%,
+    transparent 100%);
+  transform: translateX(-130%);
+  transition: transform 1.1s cubic-bezier(.2, .8, .2, 1);
+  pointer-events: none;
+  mix-blend-mode: screen;
 }
 
-.category-meta {
-  position: relative;
-  padding: 1.4rem 1.2rem 1.2rem;
+.discipline:hover .discipline-media-sheen {
+  transform: translateX(130%);
 }
 
-.category-num {
+/* L-shaped corner brackets */
+.discipline-media-corner {
   position: absolute;
-  top: -1.2rem;
-  right: 1rem;
-  width: 2.4rem;
-  height: 2.4rem;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.discipline-media-corner span {
+  position: absolute;
+  background: var(--color-cinnabar);
+}
+
+.discipline-media-corner span:nth-child(1) {
+  top: 0;
+  left: 0;
+  width: 22px;
+  height: 1.5px;
+}
+
+.discipline-media-corner span:nth-child(2) {
+  top: 0;
+  left: 0;
+  width: 1.5px;
+  height: 22px;
+}
+
+.discipline-media-corner-tl {
+  top: -10px;
+  left: -10px;
+}
+
+.discipline-media-corner-br {
+  bottom: -10px;
+  right: -10px;
+  transform: rotate(180deg);
+}
+
+/* Discipline label tag */
+.discipline-stamp {
+  position: absolute;
+  z-index: 3;
+  bottom: -0.85rem;
+  right: -0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 1rem;
   background: #16181f;
   color: #fafafa;
   font-family: var(--font-display);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  border: 1px solid #16181f;
+  box-shadow:
+    0 14px 28px -14px rgba(22, 24, 31, 0.55),
+    inset 0 0 0 1px rgba(250, 250, 250, 0.18);
+  transition: transform 0.55s cubic-bezier(.2, .8, .2, 1);
 }
 
-.category-icon {
-  display: block;
-  margin-bottom: 0.35rem;
-  font-size: 1.4rem;
+.discipline.is-mirrored .discipline-stamp {
+  right: auto;
+  left: -0.6rem;
+}
+
+.discipline:hover .discipline-stamp {
+  transform: translateY(-3px);
+}
+
+.discipline-stamp small {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(250, 250, 250, 0.7);
+}
+
+.discipline-stamp strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: #fafafa;
+}
+
+.discipline-stamp strong::before {
+  content: '';
+  width: 14px;
+  height: 1px;
+  background: var(--color-cinnabar);
+}
+
+/* Meta column */
+.discipline-meta {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1.1rem;
+  padding: 0.4rem 0;
+}
+
+.discipline-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
   color: #16181f;
 }
 
-.category-meta h3 {
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-weight: 800;
-  margin: 0 0 0.4rem;
+.discipline-eyebrow-mark {
+  font-size: 0.6em;
+  color: var(--color-cinnabar);
+  transform: translateY(-0.05em);
 }
 
-.category-meta p {
-  font-size: 0.84rem;
-  color: #6c7384;
-  line-height: 1.6;
+.discipline-eyebrow em {
+  font-style: normal;
+  letter-spacing: 0.32em;
+}
+
+.discipline-eyebrow-rule {
+  flex: 0 0 36px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(22, 24, 31, 0.42), rgba(22, 24, 31, 0));
+}
+
+.discipline-eyebrow strong {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--color-cinnabar);
+  font-style: italic;
+}
+
+.discipline-title {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.9rem;
   margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.85rem, 3.4vw, 2.6rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  color: #16181f;
+}
+
+.discipline-icon {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  font-size: 1.2rem;
+  color: #fafafa;
+  border-radius: 50%;
+  background: #16181f;
+  box-shadow:
+    0 0 0 1px rgba(22, 24, 31, 0.16),
+    0 0 0 5px #fafafa,
+    0 0 0 6px rgba(22, 24, 31, 0.1);
+}
+
+.discipline-title-text {
+  position: relative;
+  display: inline-block;
+}
+
+.discipline-title-text::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -0.3rem;
+  width: 2.4rem;
+  height: 2px;
+  background: var(--color-cinnabar);
+  transform-origin: left;
+  transition: transform 0.6s cubic-bezier(.2, .8, .2, 1);
+}
+
+.discipline:hover .discipline-title-text::after {
+  transform: scaleX(2.6);
+}
+
+.discipline-desc {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.85;
+  color: #2c303a;
+  max-width: 32em;
+}
+
+.discipline-foot {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.4rem;
+}
+
+.discipline-foot-rule {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(22, 24, 31, 0), rgba(22, 24, 31, 0.28), rgba(22, 24, 31, 0));
+}
+
+.discipline-foot-label {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #6c7384;
+}
+
+@media (max-width: 879px) {
+  .discipline {
+    grid-template-columns: 1fr;
+    gap: 1.6rem;
+    padding: 0.4rem 0;
+  }
+  .discipline-media-frame {
+    aspect-ratio: 4 / 3;
+  }
+  .discipline-bignum {
+    font-size: 11rem;
+    top: -0.06em;
+  }
+  .discipline-stamp {
+    right: 0.4rem;
+    bottom: -0.9rem;
+    padding: 0.5rem 0.75rem;
+  }
+  .discipline.is-mirrored .discipline-stamp {
+    left: 0.4rem;
+  }
+  .discipline-title {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .discipline-bignum { font-size: 8.4rem; }
+  .discipline-media-corner { width: 16px; height: 16px; }
+  .discipline-media-corner span:nth-child(1) { width: 16px; }
+  .discipline-media-corner span:nth-child(2) { height: 16px; }
 }
 
 /* ───── Profile ───── */
