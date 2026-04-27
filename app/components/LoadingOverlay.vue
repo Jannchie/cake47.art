@@ -85,6 +85,11 @@ onMounted(() => {
     startIntroTimers()
     return
   }
+
+  timers.push(window.setTimeout(() => {
+    subtitleVisible.value = true
+    startIntroTimers()
+  }, 1800))
 })
 
 onBeforeUnmount(() => {
@@ -94,7 +99,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <Transition name="fade">
+  <Transition>
     <div v-if="visible" class="loading-overlay" :class="{ 'is-fading': fading }">
       <div class="loading-wordmark" :aria-label="`${titleText} ${props.subtitle}`">
         <span class="loading-title-row">
@@ -140,19 +145,74 @@ onBeforeUnmount(() => {
   z-index: var(--z-loading, 1000);
   display: grid;
   place-items: center;
-  background: #fbfaf8;
+  --loading-paper: #fbfaf8;
+  overflow: hidden;
+  background: var(--loading-paper);
+  isolation: isolate;
 }
 
 .loading-overlay.is-fading {
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 0.7s cubic-bezier(.4, 0, .2, 1);
+  background: transparent;
 }
 
-.fade-leave-active { transition: opacity 0.7s cubic-bezier(.4, 0, .2, 1); }
-.fade-leave-to { opacity: 0; }
+.loading-overlay::before,
+.loading-overlay::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  z-index: 0;
+  width: 100%;
+  height: calc(50% + 2.5rem);
+  background: var(--loading-paper);
+  will-change: transform;
+}
+
+.loading-overlay::before {
+  top: 0;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - 1.1rem),
+    86% 100%,
+    68% calc(100% - 0.85rem),
+    50% 100%,
+    32% calc(100% - 0.65rem),
+    14% 100%,
+    0 calc(100% - 1.1rem)
+  );
+}
+
+.loading-overlay::after {
+  bottom: 0;
+  clip-path: polygon(
+    0 1.1rem,
+    14% 0,
+    32% 0.65rem,
+    50% 0,
+    68% 0.85rem,
+    86% 0,
+    100% 1.1rem,
+    100% 100%,
+    0 100%
+  );
+}
+
+.loading-overlay.is-fading::before {
+  animation: loadingMaskTop 0.7s cubic-bezier(.76, 0, .24, 1) forwards;
+}
+
+.loading-overlay.is-fading::after {
+  animation: loadingMaskBottom 0.7s cubic-bezier(.76, 0, .24, 1) forwards;
+}
+
+.loading-overlay.is-fading .loading-wordmark {
+  animation: loadingWordmarkExit 0.34s cubic-bezier(.4, 0, .2, 1) forwards;
+}
 
 .loading-wordmark {
+  position: relative;
+  z-index: 1;
   display: grid;
   justify-items: center;
   gap: 1rem;
@@ -236,8 +296,29 @@ onBeforeUnmount(() => {
   }
 }
 
+@keyframes loadingMaskTop {
+  to {
+    transform: translateY(-104%);
+  }
+}
+
+@keyframes loadingMaskBottom {
+  to {
+    transform: translateY(104%);
+  }
+}
+
+@keyframes loadingWordmarkExit {
+  to {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .loading-overlay,
+  .loading-overlay::before,
+  .loading-overlay::after,
   .loading-overlay * {
     animation: none !important;
     transition: none !important;
