@@ -645,7 +645,6 @@ watch(() => route.query.category, () => {
           v-else
           :key="currentArtwork.id"
           class="stage-image"
-          :style="thumbHashBackgroundStyle(currentArtwork.thumbHash)"
         >
           <img
             :src="currentArtwork.url"
@@ -1078,9 +1077,6 @@ watch(() => route.query.category, () => {
 .stage-image {
   position: relative;
   display: block;
-  background-color: #efece9;
-  background-position: center;
-  background-size: cover;
   animation: paint 0.55s cubic-bezier(.2, .8, .2, 1) both;
 }
 
