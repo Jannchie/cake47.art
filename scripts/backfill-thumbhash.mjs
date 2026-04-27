@@ -48,8 +48,9 @@ function run(command, args, options = {}) {
   })
 
   if (result.status !== 0) {
+    const stdout = result.stdout ? result.stdout.toString() : ''
     const stderr = result.stderr ? result.stderr.toString() : ''
-    fail(`Command failed: ${command} ${args.join(' ')}${stderr ? `\n${stderr}` : ''}`)
+    fail(`Command failed: ${command} ${args.join(' ')}${stdout ? `\n${stdout}` : ''}${stderr ? `\n${stderr}` : ''}`)
   }
 
   return result
@@ -204,6 +205,11 @@ async function backfillRemote() {
   }
 
   const { bucketName } = readWranglerConfig()
+  const columns = new Set(queryRemoteRows('pragma table_info(artworks)').map(row => String(row.name)))
+  if (!columns.has('thumb_hash')) {
+    fail('Remote D1 is missing artworks.thumb_hash. Run pnpm db:migrate:production first.')
+  }
+
   const rows = queryRemoteRows(`
     select id, storage_key
     from artworks
