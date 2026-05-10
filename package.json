@@ -29,6 +29,7 @@
     "@text-trace/vue": "^0.2.0",
     "drizzle-orm": "^0.45.2",
     "eslint": "^10.2.1",
+    "h3": "1.15.11",
     "nuxt": "^4.4.2",
     "three": "^0.184.0",
     "thumbhash": "0.1.1",
