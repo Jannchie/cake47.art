@@ -26,6 +26,7 @@ jobs:
       NUXT_HUB_CLOUDFLARE_DATABASE_ID: ${{ secrets.NUXT_HUB_CLOUDFLARE_DATABASE_ID }}
       NUXT_HUB_CLOUDFLARE_R2_BUCKET: ${{ secrets.NUXT_HUB_CLOUDFLARE_R2_BUCKET }}
       NUXT_ADMIN_TOKEN: ${{ secrets.NUXT_ADMIN_TOKEN }}
+      NUXT_OG_IMAGE_SECRET: ${{ secrets.NUXT_OG_IMAGE_SECRET }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,6 +50,7 @@ jobs:
           : "${NUXT_HUB_CLOUDFLARE_DATABASE_ID:?Missing NUXT_HUB_CLOUDFLARE_DATABASE_ID}"
           : "${NUXT_HUB_CLOUDFLARE_R2_BUCKET:?Missing NUXT_HUB_CLOUDFLARE_R2_BUCKET}"
           : "${NUXT_ADMIN_TOKEN:?Missing NUXT_ADMIN_TOKEN}"
+          : "${NUXT_OG_IMAGE_SECRET:?Missing NUXT_OG_IMAGE_SECRET}"
 
       - name: Apply D1 migrations
         run: pnpm db:migrate:production
@@ -57,4 +59,6 @@ jobs:
         run: pnpm deploy:cloudflare
 
       - name: Sync Worker secrets
-        run: printf '%s' "$NUXT_ADMIN_TOKEN" | pnpm exec wrangler secret put NUXT_ADMIN_TOKEN --config .output/server/wrangler.json
+        run: |
+          printf '%s' "$NUXT_ADMIN_TOKEN" | pnpm exec wrangler secret put NUXT_ADMIN_TOKEN --config .output/server/wrangler.json
+          printf '%s' "$NUXT_OG_IMAGE_SECRET" | pnpm exec wrangler secret put NUXT_OG_IMAGE_SECRET --config .output/server/wrangler.json

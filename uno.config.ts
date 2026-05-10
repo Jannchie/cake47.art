@@ -11,6 +11,12 @@ export default defineConfig({
       'pulse-slow': 'pulse 3s ease-in-out infinite',
       'float': 'float 6s ease-in-out infinite',
     },
+    // Trim the wind4 default sans stack: drop the Windows/Apple/Linux system
+    // fonts (Segoe UI, Helvetica Neue, Arial) that nuxt-og-image otherwise
+    // tries — and fails — to resolve as downloadable fonts at boot.
+    font: {
+      sans: ['ui-sans-serif', 'system-ui', 'sans-serif'].join(','),
+    },
   },
   rules: [
     ['animate-fade-in-up', {

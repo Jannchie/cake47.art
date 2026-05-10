@@ -9,6 +9,8 @@ setHomeStructuredData()
 
 const { locale } = useLocaleState()
 
+defineOgImage('Cake47')
+
 const copyByLocale: Record<Locale, {
   navWorks: string
   navProfile: string

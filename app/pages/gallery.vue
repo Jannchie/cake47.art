@@ -137,6 +137,8 @@ setGalleryStructuredData({
   description: galleryDescription,
 })
 
+defineOgImage('Cake47')
+
 const { data: indexData } = await useFetch('/api/gallery')
 const categories = computed<CategoryRow[]>(() => indexData.value?.categories ?? [])
 const series = computed<SeriesRow[]>(() => indexData.value?.series ?? [])
