@@ -5,6 +5,7 @@ import type { Locale } from '~/utils/useLocale'
 
 setHtmlLangByLocale()
 setSeoMetaByLocale()
+setHomeStructuredData()
 
 const { locale } = useLocaleState()
 
@@ -440,6 +441,17 @@ onBeforeUnmount(() => {
     <BackgroundOrnament />
     <div class="grain-overlay" aria-hidden="true" />
 
+    <div class="agent-readable" data-speakable>
+      <h1>{{ copy.heroStudio }} — snowcake47 / 私期</h1>
+      <p>{{ copy.profileBio }}</p>
+      <p>{{ copy.archiveLead }}</p>
+      <ul>
+        <li v-for="category in artworkCategories" :key="category.id">
+          <strong>{{ category.label[locale] }}</strong>: {{ category.description[locale] }}
+        </li>
+      </ul>
+    </div>
+
     <header class="site-nav" :class="{ 'is-scrolled': navScrolled }">
       <NuxtLink :to="`/${locale}`" class="brand">
         <span class="brand-mark">
@@ -839,6 +851,20 @@ onBeforeUnmount(() => {
   opacity: 0.5;
   pointer-events: none;
   mix-blend-mode: multiply;
+}
+
+/* Visually hidden but exposed to assistive tech and crawlers, so AI agents
+   can read a meaningful H1 + intro paragraph without JavaScript or 3D scenes. */
+.agent-readable {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: normal;
+  border: 0;
 }
 
 /* ───── Site nav ───── */
