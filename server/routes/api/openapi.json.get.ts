@@ -2,6 +2,8 @@
 // Served at /api/openapi.json with Content-Type: application/openapi+json
 // (also accepted as application/json by tools that don't yet recognise the
 // dedicated media type).
+import { defineEventHandler, setResponseHeader } from 'h3'
+
 const SITE_URL = 'https://cake47.art'
 
 const LOCALIZED_TEXT_SCHEMA = {

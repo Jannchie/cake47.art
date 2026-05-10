@@ -1,6 +1,8 @@
 // A2A (Agent-to-Agent) Agent Card.
 // Spec: https://a2aproject.github.io/A2A/specification/
 // Lives at /.well-known/agent-card.json so peer agents can discover this site's capabilities.
+import { defineEventHandler, setResponseHeader } from 'h3'
+
 const SITE_URL = 'https://cake47.art'
 
 export default defineEventHandler((event) => {

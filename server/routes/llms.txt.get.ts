@@ -1,6 +1,8 @@
 // llms.txt — concise, machine-readable index for AI agents.
 // Spec: https://llmstxt.org/
 // Served as text/plain so agents can parse without JS rendering.
+import { defineEventHandler, setResponseHeader } from 'h3'
+
 const SITE_URL = 'https://cake47.art'
 
 const BODY = `# snowcake47 (cake47.art)

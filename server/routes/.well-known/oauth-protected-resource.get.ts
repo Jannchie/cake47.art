@@ -1,6 +1,8 @@
 // RFC 9728 — OAuth Protected Resource metadata.
 // cake47.art's public read endpoints don't require OAuth, but publishing this
 // document lets agents skip the 401 handshake and learn that fact directly.
+import { defineEventHandler, setResponseHeader } from 'h3'
+
 const SITE_URL = 'https://cake47.art'
 
 export default defineEventHandler((event) => {

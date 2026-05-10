@@ -1,5 +1,7 @@
 // Modular llms.txt for the API surface. Lets agents fetch a focused
 // context about the public API without pulling the full site index.
+import { defineEventHandler, setResponseHeader } from 'h3'
+
 const SITE_URL = 'https://cake47.art'
 
 const BODY = `# cake47.art — public API

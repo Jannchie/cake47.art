@@ -16,6 +16,7 @@
 // Tools are kept synchronous and stateless; each call dispatches to the
 // existing internal handlers via $fetch.
 
+import { defineEventHandler, readBody, setResponseHeader, setResponseStatus } from 'h3'
 import { z } from 'zod'
 
 const PROTOCOL_VERSION = '2025-06-18'

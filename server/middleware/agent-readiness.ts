@@ -1,3 +1,5 @@
+import { appendResponseHeader, defineEventHandler, getRequestHeader, getRequestURL, setResponseHeader } from 'h3'
+
 // Cross-cutting agent-readiness middleware.
 //
 // Responsibilities:

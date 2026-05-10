@@ -1,4 +1,6 @@
 // Modular llms.txt for the gallery section.
+import { defineEventHandler, setResponseHeader } from 'h3'
+
 const SITE_URL = 'https://cake47.art'
 
 const BODY = `# cake47.art — gallery

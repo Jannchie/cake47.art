@@ -4,6 +4,8 @@
 // This site does not yet require signed agent traffic, so the keys array is
 // intentionally empty. Publishing the document still satisfies the discovery
 // contract and gives operators a single place to rotate keys later.
+import { defineEventHandler, setResponseHeader } from 'h3'
+
 export default defineEventHandler((event) => {
   setResponseHeader(event, 'Content-Type', 'application/http-message-signatures-directory+json')
   setResponseHeader(event, 'Cache-Control', 'public, max-age=3600')

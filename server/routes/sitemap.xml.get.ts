@@ -1,3 +1,4 @@
+import { defineEventHandler, setResponseHeader } from 'h3'
 import { asc, tables, useDrizzle } from '~~/server/utils/drizzle'
 
 const SITE_URL = 'https://cake47.art'

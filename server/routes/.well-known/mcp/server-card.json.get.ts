@@ -1,5 +1,7 @@
 // MCP server card preview. Lets clients evaluate the server before opening a transport.
 // Convention: https://modelcontextprotocol.io/
+import { defineEventHandler, setResponseHeader } from 'h3'
+
 const SITE_URL = 'https://cake47.art'
 
 export default defineEventHandler((event) => {

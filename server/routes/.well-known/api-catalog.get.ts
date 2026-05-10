@@ -1,4 +1,6 @@
 // RFC 9727 — API Catalog. Linkset format pointing at OpenAPI + service docs.
+import { defineEventHandler, setResponseHeader } from 'h3'
+
 const SITE_URL = 'https://cake47.art'
 
 export default defineEventHandler((event) => {

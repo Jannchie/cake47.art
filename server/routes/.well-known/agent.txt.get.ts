@@ -1,4 +1,6 @@
 // agent.txt — natural-language agent instruction file.
+import { defineEventHandler, setResponseHeader } from 'h3'
+
 const BODY = `# agent.txt for cake47.art
 
 This site is the personal illustration portfolio of snowcake47 / 私期 / Shiki.

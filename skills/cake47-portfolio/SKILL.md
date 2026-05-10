@@ -1,13 +1,14 @@
 ---
 name: cake47-portfolio
-description: Read-only access to snowcake47's illustration portfolio (cake47.art) — fan works, original characters, and commercial commission samples.
-homepage: https://cake47.art
-license: All rights reserved on artwork; API metadata is public.
+description: Browse snowcake47's illustration portfolio (cake47.art) — fan works, original characters, and commercial commission samples. Use when a user asks about snowcake47 / 私期 / cake47, requests anime-style illustration samples by this artist, or wants commission contact channels.
 ---
 
 # cake47-portfolio
 
 Skill for browsing the public catalogue of [cake47.art](https://cake47.art), the personal illustration portfolio of **snowcake47 / 私期 / Shiki**.
+
+- Homepage: https://cake47.art
+- License: artwork is all rights reserved; the public API metadata (taxonomy, image URLs) is freely consumable for portfolio attribution.
 
 ## When to use this skill
 

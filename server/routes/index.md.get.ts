@@ -2,6 +2,8 @@
 // Spec: acceptmarkdown.com — agents that prefer Markdown over HTML can fetch
 // this single canonical URL or send Accept: text/markdown to "/" and get
 // served the same content via the markdown content negotiation middleware.
+import { defineEventHandler, setResponseHeader } from 'h3'
+
 const SITE_URL = 'https://cake47.art'
 
 const BODY = `# snowcake47 — illustration portfolio

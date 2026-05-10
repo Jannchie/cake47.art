@@ -1,6 +1,8 @@
 // NLWeb Schema Map: https://github.com/microsoft/NLWeb
 // Lists structured data feeds (JSON-LD on pages, OpenAPI catalogue, etc.)
 // so agents can pull machine-readable representations of the site.
+import { defineEventHandler, setResponseHeader } from 'h3'
+
 const SITE_URL = 'https://cake47.art'
 
 export default defineEventHandler((event) => {
