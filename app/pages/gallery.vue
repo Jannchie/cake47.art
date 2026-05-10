@@ -132,6 +132,10 @@ setSeoMetaByLocale({
   title: galleryTitle,
   description: galleryDescription,
 })
+setGalleryStructuredData({
+  title: galleryTitle,
+  description: galleryDescription,
+})
 
 const { data: indexData } = await useFetch('/api/gallery')
 const categories = computed<CategoryRow[]>(() => indexData.value?.categories ?? [])
@@ -550,6 +554,8 @@ watch(() => route.query.category, () => {
 
 <template>
   <main class="hall">
+    <h1 class="sr-only">{{ galleryTitle[locale] }}</h1>
+    <p class="sr-only">{{ galleryDescription[locale] }}</p>
     <div class="hall-grain" aria-hidden="true" />
 
     <NuxtLink :to="`/${locale}`" class="hall-back">
@@ -740,6 +746,18 @@ watch(() => route.query.category, () => {
 </template>
 
 <style scoped>
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: normal;
+  border: 0;
+}
+
 .hall {
   position: fixed;
   inset: 0;
