@@ -79,6 +79,14 @@ export function setSeoMetaByLocale(options: LocaleSeoOptions = {}) {
         hreflang: 'x-default',
         href: absoluteLocalizedUrl(DEFAULT_LOCALE, options.path),
       },
+      // Markdown alternate so agent-readability auditors (and crawlers that
+      // probe <link rel="alternate">) discover the Markdown representation
+      // without needing to send Accept: text/markdown.
+      {
+        rel: 'alternate',
+        type: 'text/markdown',
+        href: `${absoluteLocalizedUrl(locale.value, options.path)}.md`,
+      },
     ],
   }))
 }

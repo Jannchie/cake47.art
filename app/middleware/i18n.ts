@@ -1,3 +1,4 @@
+import { createError, isError } from 'h3'
 import { DEFAULT_LOCALE, isLocale, normalizeLocale, type Locale } from '~/utils/useLocale'
 
 function prefixFullPath(locale: Locale, fullPath: string) {
@@ -55,10 +56,16 @@ export default defineNuxtRouteMiddleware((to) => {
     }
 
     if (routeLocaleParam) {
-      const headers = useRequestHeaders(['accept-language'])
-      const targetLocale = cookieLocale ?? preferredLocaleFromHeader(headers['accept-language'])
-      cookie.value = targetLocale
-      return navigateTo(replaceLeadingLocale(to.fullPath, targetLocale), { redirectCode: 302 })
+      // The route matched the [locale] dynamic segment but the value isn't a
+      // known locale (or alias). Treat as a genuine 404 instead of redirecting
+      // to the default locale, otherwise /foo silently becomes /en and any
+      // crawler/agent sees "200 home page" for a nonexistent URL (soft-404).
+      const normalized = normalizeLocale(routeLocaleParam)
+      if (!normalized) {
+        throw createError({ statusCode: 404, statusMessage: 'Not Found' })
+      }
+      cookie.value = normalized
+      return navigateTo(replaceLeadingLocale(to.fullPath, normalized), { redirectCode: 302 })
     }
 
     if (cookieLocale) {
@@ -69,6 +76,12 @@ export default defineNuxtRouteMiddleware((to) => {
     return navigateTo(prefixFullPath(preferredLocaleFromHeader(headers['accept-language']), to.fullPath), { redirectCode: 302 })
   }
   catch (error) {
+    // Intentional aborts (e.g. the 404 thrown above for unknown locale params)
+    // must escape the safety net — otherwise we'd convert them into silent
+    // redirects to the default locale.
+    if (isError(error)) {
+      throw error
+    }
     console.error(error)
     return navigateTo(prefixFullPath(DEFAULT_LOCALE, to.fullPath), { redirectCode: 302 })
   }

@@ -73,9 +73,9 @@ const galleryTitle: Record<Locale, string> = {
 }
 
 const galleryDescription: Record<Locale, string> = {
-  'zh-CN': 'snowcake47 / 私期的作品集，按分类和系列浏览插画作品。',
-  en: 'Browse snowcake47 illustration works by category and series.',
-  ja: 'snowcake47 / 私期のイラスト作品をカテゴリとシリーズで閲覧できます。',
+  'zh-CN': 'snowcake47 / 私期插画作品集全索引 —— 按分类（同人、原创角色、商单）与系列浏览所有公开作品，支持检索与过滤。',
+  en: 'Full archive of snowcake47 / 私期 illustrations — browse all public works by category (fan art, original characters, commissions) and by series.',
+  ja: 'snowcake47 / 私期のイラスト作品集全索引 —— カテゴリ（ファンアート、オリジナル、商業・依頼）とシリーズで全作品を閲覧・検索できます。',
 }
 
 const copy = computed(() => {
@@ -558,6 +558,8 @@ watch(() => route.query.category, () => {
   <main class="hall">
     <h1 class="sr-only">{{ galleryTitle[locale] }}</h1>
     <p class="sr-only">{{ galleryDescription[locale] }}</p>
+    <h2 class="sr-only">{{ copy.allCategories }}</h2>
+    <h3 class="sr-only">{{ copy.series }}</h3>
     <div class="hall-grain" aria-hidden="true" />
 
     <NuxtLink :to="`/${locale}`" class="hall-back">
@@ -618,7 +620,7 @@ watch(() => route.query.category, () => {
 
       <Transition name="fade-soft">
         <nav v-if="visibleSeries.length > 0" class="index-series">
-          <header>— {{ copy.series }}</header>
+          <h3 class="index-series-header">— {{ copy.series }}</h3>
           <button
             type="button"
             class="index-series-item"
@@ -998,13 +1000,15 @@ watch(() => route.query.category, () => {
   margin-top: 1.4rem;
 }
 
-.index-series header {
+.index-series-header {
   font-family: 'Shippori Mincho', 'Cormorant Garamond', serif;
   font-style: italic;
+  font-weight: 400;
   font-size: 0.78rem;
   color: #6c7384;
   letter-spacing: 0.1em;
   padding: 0 0 0.35rem 0.6rem;
+  margin: 0;
 }
 
 .index-series-item {

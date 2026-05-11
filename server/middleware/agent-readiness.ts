@@ -1,4 +1,4 @@
-import { appendResponseHeader, defineEventHandler, getRequestHeader, getRequestURL, setResponseHeader } from 'h3'
+import { appendResponseHeader, defineEventHandler, getRequestURL, setResponseHeader } from 'h3'
 
 // Cross-cutting agent-readiness middleware.
 //
@@ -7,17 +7,15 @@ import { appendResponseHeader, defineEventHandler, getRequestHeader, getRequestU
 //      alternate, OpenAPI service description, and api-catalog. This makes
 //      every response self-describing for agents that probe headers.
 //
-//   2. Markdown content negotiation (acceptmarkdown.com): if a client sends
-//      `Accept: text/markdown` to the home page (`/`, `/en`, `/zh-CN`, `/ja`),
-//      respond with the markdown alternate at /index.md and a `Vary: Accept`
-//      header so caches segregate correctly.
-//
-//   3. Agent mode (?mode=agent): when this query parameter is present on the
+//   2. Agent mode (?mode=agent): when this query parameter is present on the
 //      home page, return a structured JSON document describing the site's
 //      machine-readable surface instead of marketing HTML.
 //
-// The middleware short-circuits only on the home page paths above so that
-// other routes (API, files, .well-known/*, etc.) are unaffected.
+//   3. Advisory rate-limit headers on public read API routes.
+//
+// Markdown content negotiation (Accept: text/markdown, `.md` URL, AI
+// User-Agent) lives in `markdown-alternate.ts`; it covers every sitemap page,
+// not just the home page paths.
 const SITE_URL = 'https://cake47.art'
 
 const LINK_HEADER = [
@@ -36,30 +34,6 @@ function isHomePath(path: string): boolean {
   // Trim query string + hash for the lookup.
   const cleaned = path.split('?')[0]?.split('#')[0] ?? '/'
   return HOME_PATHS.has(cleaned)
-}
-
-function wantsMarkdown(accept: string | undefined): boolean {
-  if (!accept) {
-    return false
-  }
-  // Cheap parse: list-of-types separated by commas. We treat text/markdown as a
-  // hard preference whenever it appears with a higher-or-equal q-value than
-  // text/html.
-  const parts = accept.split(',').map(s => s.trim().toLowerCase())
-  let mdQ = -1
-  let htmlQ = -1
-  for (const part of parts) {
-    const [type, ...params] = part.split(';').map(s => s.trim())
-    const qParam = params.find(p => p.startsWith('q='))
-    const q = qParam ? Number.parseFloat(qParam.slice(2)) : 1
-    if (type === 'text/markdown' && q > mdQ) {
-      mdQ = q
-    }
-    if ((type === 'text/html' || type === '*/*') && q > htmlQ) {
-      htmlQ = q
-    }
-  }
-  return mdQ > 0 && mdQ >= htmlQ
 }
 
 function agentModePayload() {
@@ -143,28 +117,11 @@ export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'RateLimit-Policy', '60;w=60')
   }
 
-  // 2 & 3. Only act on the home-page paths.
-  if (!isHomePath(path)) {
-    return
-  }
-
-  // Agent mode short-circuit.
-  if (url.searchParams.get('mode') === 'agent') {
+  // 2. Agent mode short-circuit (home pages only).
+  if (isHomePath(path) && url.searchParams.get('mode') === 'agent') {
     setResponseHeader(event, 'Content-Type', 'application/json; charset=utf-8')
     setResponseHeader(event, 'Cache-Control', 'public, max-age=300')
     setResponseHeader(event, 'X-Agent-Mode', 'true')
     return agentModePayload()
-  }
-
-  // Markdown content negotiation.
-  const accept = getRequestHeader(event, 'accept')
-  // Always advertise that this resource varies by Accept so caches behave.
-  appendResponseHeader(event, 'Vary', 'Accept')
-
-  if (wantsMarkdown(accept)) {
-    const md = await $fetch<string>('/index.md')
-    setResponseHeader(event, 'Content-Type', 'text/markdown; charset=utf-8')
-    setResponseHeader(event, 'Cache-Control', 'public, max-age=300')
-    return md
   }
 })

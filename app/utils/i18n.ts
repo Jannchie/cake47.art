@@ -17,9 +17,9 @@ const i18nData = {
     'en': 'snowcake47 Illustration',
   },
   description: {
-    'zh-CN': 'snowcake47 / 私期的个人作品集，收录同人创作、原创角色与商单委托作品。',
-    'ja': 'snowcake47 / 私期のポートフォリオ。同人・ファンアート、オリジナルキャラクター、商業・依頼作品を掲載。',
-    'en': 'Portfolio for snowcake47, featuring fan works, original characters, and commission samples.',
+    'zh-CN': 'snowcake47 / 私期的个人插画作品集，收录同人创作、Vocaloid 同人、原创角色设计、生日贺图与商业委托样稿，三语展示。',
+    'ja': 'snowcake47 / 私期のイラストポートフォリオ。同人・ファンアート、Vocaloid 二次創作、オリジナルキャラクター、商業・依頼作品を三言語で掲載。',
+    'en': 'Portfolio for snowcake47 / 私期 — anime-style illustrations: fan works, Vocaloid art, original characters, birthday pieces, and commercial commission samples.',
   },
   x: {
     'zh-CN': 'X',

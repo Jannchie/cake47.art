@@ -28,6 +28,7 @@
     "@nuxtjs/robots": "6.0.8",
     "@nuxtjs/sitemap": "8.0.15",
     "@resvg/resvg-js": "^2.6.2",
+    "@resvg/resvg-wasm": "^2.6.2",
     "@roku-ui/preset": "^0.31.0",
     "@text-trace/vue": "^0.2.0",
     "drizzle-orm": "^0.45.2",
@@ -46,6 +47,7 @@
     "unocss": "^66.6.8",
     "vue": "^3.5.33",
     "vue-router": "^5.0.6",
+    "yoga-wasm-web": "^0.3.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
