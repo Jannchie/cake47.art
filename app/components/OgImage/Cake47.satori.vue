@@ -1,4 +1,14 @@
 <script setup lang="ts">
+// Subtitle accepts a per-page override so /gallery, /gallery/fan-works/...
+// each ship distinct social-card art instead of all collapsing to the same
+// "私期的画室" caption.
+const props = withDefaults(defineProps<{
+  subtitle?: string
+  eyebrow?: string
+}>(), {
+  subtitle: '私期的画室',
+  eyebrow: 'illustration portfolio',
+})
 const accent = '#8a1827'
 </script>
 
@@ -64,6 +74,18 @@ const accent = '#8a1827'
     >
       <div
         :style="{
+          fontSize: '24px',
+          letterSpacing: '0.32em',
+          color: accent,
+          textTransform: 'uppercase',
+          display: 'flex',
+        }"
+      >
+        {{ props.eyebrow }}
+      </div>
+
+      <div
+        :style="{
           display: 'flex',
           alignItems: 'baseline',
           fontSize: '128px',
@@ -120,9 +142,11 @@ const accent = '#8a1827'
           letterSpacing: '0.2em',
           color: '#6c7384',
           display: 'flex',
+          maxWidth: '880px',
+          textAlign: 'center',
         }"
       >
-        私期的画室
+        {{ props.subtitle }}
       </div>
     </div>
   </div>

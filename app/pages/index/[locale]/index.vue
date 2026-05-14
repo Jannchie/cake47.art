@@ -9,8 +9,6 @@ setHomeStructuredData()
 
 const { locale } = useLocaleState()
 
-defineOgImage('Cake47')
-
 const copyByLocale: Record<Locale, {
   navWorks: string
   navProfile: string
@@ -22,6 +20,12 @@ const copyByLocale: Record<Locale, {
   works: string
   collection: string
   profile: string
+  eyebrowProfile: string
+  eyebrowWorks: string
+  eyebrowEkac: string
+  eyebrowCollection: string
+  eyebrowContact: string
+  eyebrowArchive: string
   profileBio: string
   contact: string
   open: string
@@ -37,6 +41,8 @@ const copyByLocale: Record<Locale, {
   archiveStamp: string
   featured: string
   footerCredit: string
+  seoH1: string
+  seoIntro: string
 }> = {
   'zh-CN': {
     navWorks: '作品',
@@ -49,6 +55,12 @@ const copyByLocale: Record<Locale, {
     works: '作品',
     collection: '创作方向',
     profile: '私期 / snowcake47',
+    eyebrowProfile: 'Profile',
+    eyebrowWorks: 'Works',
+    eyebrowEkac: 'Character',
+    eyebrowCollection: 'Collection',
+    eyebrowContact: 'Contact',
+    eyebrowArchive: 'Archive',
     profileBio: '插画师。兴趣是吃各种店，并在 Google Maps 上无情评分。',
     contact: '联络',
     open: '前往',
@@ -64,6 +76,8 @@ const copyByLocale: Record<Locale, {
     archiveStamp: 'cake47.art / archive',
     featured: '精选',
     footerCredit: 'snowcake47 / 私期',
+    seoH1: 'snowcake47 / 私期 的插画作品集 — 同人创作、原创角色、商业委托',
+    seoIntro: '插画师 snowcake47（私期 / Shiki / cake47）的官方作品集。汇集 Vocaloid 等同人创作、原创角色设计、生日贺图，以及商业委托与米画师约稿样稿。',
   },
   en: {
     navWorks: 'Works',
@@ -72,10 +86,16 @@ const copyByLocale: Record<Locale, {
     navEkac: 'Character',
     navCollection: 'Collection',
     navArchive: 'Gallery',
-    brandSubtitle: 'snowcake47 / Shiki',
+    brandSubtitle: 'snowcake47',
     works: 'Works',
     collection: 'Collection',
-    profile: 'Shiki / snowcake47',
+    profile: 'snowcake47',
+    eyebrowProfile: 'About',
+    eyebrowWorks: 'Selected',
+    eyebrowEkac: 'Cast',
+    eyebrowCollection: 'Disciplines',
+    eyebrowContact: 'Reach',
+    eyebrowArchive: 'Archive',
     profileBio: 'Illustrator. Eats through every kind of place, then scores them mercilessly on Google Maps.',
     contact: 'Contact',
     open: 'visit',
@@ -90,7 +110,9 @@ const copyByLocale: Record<Locale, {
     archiveCta: 'Enter the gallery',
     archiveStamp: 'cake47.art / archive',
     featured: 'Selected',
-    footerCredit: 'snowcake47 / Shiki',
+    footerCredit: 'snowcake47',
+    seoH1: 'snowcake47 / 私期 — Illustration Portfolio: Fan Art, Original Characters, Commission Samples',
+    seoIntro: 'Official portfolio of illustrator snowcake47 (also known as 私期 / Shiki / cake47): anime-style fan works including Vocaloid pieces, original character designs, birthday illustrations, and commercial commission samples sourced through 米画师 and X/Twitter.',
   },
   ja: {
     navWorks: '作品',
@@ -103,6 +125,12 @@ const copyByLocale: Record<Locale, {
     works: '作品',
     collection: 'カテゴリ',
     profile: '私期 / snowcake47',
+    eyebrowProfile: 'Profile',
+    eyebrowWorks: 'Works',
+    eyebrowEkac: 'Character',
+    eyebrowCollection: 'Collection',
+    eyebrowContact: 'Contact',
+    eyebrowArchive: 'Archive',
     profileBio: 'イラストレーター。いろんな店を巡り、Google マップで容赦なく採点します。',
     contact: 'コンタクト',
     open: 'ひらく',
@@ -118,10 +146,17 @@ const copyByLocale: Record<Locale, {
     archiveStamp: 'cake47.art / archive',
     featured: 'セレクト',
     footerCredit: 'snowcake47 / 私期',
+    seoH1: 'snowcake47 / 私期 のイラストポートフォリオ — 同人・オリジナルキャラ・商業作品',
+    seoIntro: 'イラストレーター snowcake47（私期 / Shiki / cake47）の公式ポートフォリオ。ボーカロイドなどの二次創作、オリジナルキャラクターデザイン、誕生日イラスト、米画師・X 経由の商業依頼作品を収録。',
   },
 }
 
 const copy = computed(() => copyByLocale[locale.value])
+
+defineOgImage('Cake47', {
+  subtitle: copyByLocale[locale.value].seoH1,
+  eyebrow: 'illustration portfolio',
+})
 
 const localeLinks = [
   { label: 'JP', full: '日本語', href: '/ja' },
@@ -198,6 +233,7 @@ interface SlotRender {
   src: string
   category: ArtworkCategoryId
   seriesLabel: string
+  title: string
   objectPosition?: string
   thumbHash: string | null
 }
@@ -217,13 +253,22 @@ function pickByLocale(zh: string, en: string, ja: string): string {
 }
 
 function payloadToSlot(p: HomeSlotPayload): SlotRender {
+  const seriesLabel = pickByLocale(p.seriesNameZh, p.seriesNameEn, p.seriesNameJa)
+  const title = pickByLocale(p.titleZh, p.titleEn, p.titleJa)
   return {
     src: p.url,
     category: p.categoryId as ArtworkCategoryId,
-    seriesLabel: pickByLocale(p.seriesNameZh, p.seriesNameEn, p.seriesNameJa),
+    seriesLabel,
+    title,
     objectPosition: p.objectPosition ?? undefined,
     thumbHash: p.thumbHash,
   }
+}
+
+function slotAlt(slot: SlotRender): string {
+  const categoryLabel = categoryText(slot.category)
+  const base = slot.title || slot.seriesLabel
+  return `${base} — ${slot.seriesLabel} ${categoryLabel} illustration by snowcake47`
 }
 
 function resolveSlot(slotKey: string): SlotRender | null {
@@ -439,12 +484,18 @@ onBeforeUnmount(() => {
 
 <template>
   <main class="portfolio-shell" :class="{ 'is-mounted': mounted }">
-    <LoadingOverlay :subtitle="copy.loadingSubtitle" />
+    <!-- ClientOnly: keep the overlay out of the SSR HTML so Lighthouse's LCP
+         detection sees the hero image / H1 rather than the white paper mask,
+         and so crawlers receive a fully-rendered first paint. -->
+    <ClientOnly>
+      <LoadingOverlay :subtitle="copy.loadingSubtitle" />
+    </ClientOnly>
     <BackgroundOrnament />
     <div class="grain-overlay" aria-hidden="true" />
 
     <div class="agent-readable" data-speakable>
-      <h1>{{ copy.heroStudio }} — snowcake47 / 私期</h1>
+      <h1>{{ copy.seoH1 }}</h1>
+      <p>{{ copy.seoIntro }}</p>
       <p>{{ copy.profileBio }}</p>
       <p>{{ copy.archiveLead }}</p>
       <ul>
@@ -457,7 +508,7 @@ onBeforeUnmount(() => {
     <header class="site-nav" :class="{ 'is-scrolled': navScrolled }">
       <NuxtLink :to="`/${locale}`" class="brand">
         <span class="brand-mark">
-          <img :src="BRAND_AVATAR_URL" alt="snowcake47">
+          <img :src="BRAND_AVATAR_URL" alt="snowcake47 illustrator avatar" width="48" height="48">
           <span class="brand-mark-ring" aria-hidden="true" />
         </span>
         <span class="brand-text">
@@ -467,12 +518,12 @@ onBeforeUnmount(() => {
       </NuxtLink>
 
       <nav class="site-nav-links">
-        <a href="#profile" @click="handleSectionLinkClick($event, '#profile')"><em>01</em>{{ copy.navProfile }}</a>
-        <a href="#works" @click="handleSectionLinkClick($event, '#works')"><em>02</em>{{ copy.navWorks }}</a>
-        <a href="#ekac" @click="handleSectionLinkClick($event, '#ekac')"><em>03</em>{{ copy.navEkac }}</a>
-        <a href="#collection" @click="handleSectionLinkClick($event, '#collection')"><em>04</em>{{ copy.navCollection }}</a>
-        <a href="#contact" @click="handleSectionLinkClick($event, '#contact')"><em>05</em>{{ copy.navContact }}</a>
-        <NuxtLink :to="`/${locale}/gallery`" class="nav-archive"><em>06</em>{{ copy.navArchive }}<span class="nav-archive-arrow" aria-hidden="true">→</span></NuxtLink>
+        <a href="#profile" @click="handleSectionLinkClick($event, '#profile')">{{ copy.navProfile }}</a>
+        <a href="#works" @click="handleSectionLinkClick($event, '#works')">{{ copy.navWorks }}</a>
+        <a href="#ekac" @click="handleSectionLinkClick($event, '#ekac')">{{ copy.navEkac }}</a>
+        <a href="#collection" @click="handleSectionLinkClick($event, '#collection')">{{ copy.navCollection }}</a>
+        <a href="#contact" @click="handleSectionLinkClick($event, '#contact')">{{ copy.navContact }}</a>
+        <NuxtLink :to="`/${locale}/gallery`" class="nav-archive">{{ copy.navArchive }}<span class="nav-archive-arrow" aria-hidden="true">→</span></NuxtLink>
       </nav>
 
       <div class="locale-switcher">
@@ -557,12 +608,12 @@ onBeforeUnmount(() => {
       <div class="profile-grid">
         <div class="profile-portrait" data-reveal>
           <div class="profile-portrait-frame">
-            <img :src="BRAND_AVATAR_URL" alt="snowcake47 avatar">
+            <img :src="BRAND_AVATAR_URL" alt="Portrait of snowcake47 / 私期 — illustrator" width="320" height="320">
           </div>
         </div>
 
         <div class="profile-content" data-reveal style="--reveal-delay: 120ms">
-          <span class="section-num">01<template v-if="locale !== 'en'"> / Profile</template></span>
+          <span class="section-eyebrow"><span class="section-eyebrow-mark" aria-hidden="true">◆</span>{{ copy.eyebrowProfile }}</span>
           <h2 class="section-title">{{ copy.profile }}</h2>
           <p class="profile-bio">
             {{ copy.profileBio }}
@@ -574,7 +625,7 @@ onBeforeUnmount(() => {
     <section id="works" class="works">
       <SectionFlow variant="corner" mirror />
       <div class="section-head" data-reveal>
-        <span class="section-num">02<template v-if="locale !== 'en'"> / Works</template></span>
+        <span class="section-eyebrow"><span class="section-eyebrow-mark" aria-hidden="true">◆</span>{{ copy.eyebrowWorks }}</span>
         <h2 class="section-title">
           {{ copy.works }}
           <SectionTitleFlourish class="section-title-flourish" />
@@ -609,7 +660,7 @@ onBeforeUnmount(() => {
         </header>
 
         <div class="work-feature-frame" :style="thumbHashBackgroundStyle(heroFeature.thumbHash)">
-          <img :src="heroFeature.src" :alt="heroFeature.seriesLabel" decoding="async">
+          <img :src="heroFeature.src" :alt="slotAlt(heroFeature)" decoding="async" fetchpriority="high">
         </div>
 
         <figcaption class="work-feature-caption">
@@ -630,7 +681,7 @@ onBeforeUnmount(() => {
           :style="{ '--reveal-delay': `${(index % 3) * 90}ms` }"
         >
           <div class="work-frame" :style="thumbHashBackgroundStyle(artwork.thumbHash)">
-            <img :src="artwork.src" :alt="artwork.seriesLabel" decoding="async">
+            <img :src="artwork.src" :alt="slotAlt(artwork)" decoding="async" loading="lazy">
           </div>
           <figcaption class="work-caption">
             <strong>{{ artwork.seriesLabel }}</strong>
@@ -643,7 +694,7 @@ onBeforeUnmount(() => {
     <section id="ekac" class="ekac">
       <SectionFlow variant="split" />
       <div class="section-head" data-reveal>
-        <span class="section-num">03<template v-if="locale !== 'en'"> / Character</template></span>
+        <span class="section-eyebrow"><span class="section-eyebrow-mark" aria-hidden="true">◆</span>{{ copy.eyebrowEkac }}</span>
         <h2 class="section-title">
           {{ copy.ekac }}
           <SectionTitleFlourish class="section-title-flourish" color="#8a1827" :alpha="0.68" />
@@ -656,7 +707,7 @@ onBeforeUnmount(() => {
         data-reveal
         :style="thumbHashBackgroundStyle(ekacArtworks[0].thumbHash)"
       >
-        <img :src="ekacArtworks[0].src" :alt="copy.ekac" decoding="async">
+        <img :src="ekacArtworks[0].src" :alt="slotAlt(ekacArtworks[0])" decoding="async" loading="lazy">
       </figure>
 
       <div class="ekac-thumbs" data-reveal>
@@ -667,8 +718,9 @@ onBeforeUnmount(() => {
         >
           <img
             :src="artwork.src"
-            :alt="copy.ekac"
+            :alt="slotAlt(artwork)"
             decoding="async"
+            loading="lazy"
             :style="{ objectPosition: artwork.objectPosition ?? '50% 22%' }"
           >
         </figure>
@@ -678,7 +730,7 @@ onBeforeUnmount(() => {
     <section id="collection" class="categories">
       <SectionFlow variant="cluster" mirror />
       <div class="section-head" data-reveal>
-        <span class="section-num">04<template v-if="locale !== 'en'"> / Collection</template></span>
+        <span class="section-eyebrow"><span class="section-eyebrow-mark" aria-hidden="true">◆</span>{{ copy.eyebrowCollection }}</span>
         <h2 class="section-title">
           {{ copy.collection }}
           <SectionTitleFlourish class="section-title-flourish" variant="dip" />
@@ -694,17 +746,15 @@ onBeforeUnmount(() => {
           data-reveal
           :style="{ '--reveal-delay': `${idx * 110}ms` }"
         >
-          <span class="discipline-bignum" aria-hidden="true">{{ String(idx + 1).padStart(2, '0') }}</span>
-
           <div class="discipline-media">
             <div class="discipline-media-frame" :style="thumbHashBackgroundStyle(item.artwork.thumbHash)">
               <img
                 :src="item.artwork.src"
-                :alt="item.artwork.seriesLabel"
+                :alt="slotAlt(item.artwork)"
                 decoding="async"
+                loading="lazy"
                 :style="{ objectPosition: item.artwork.objectPosition ?? '50% 18%' }"
               >
-              <span class="discipline-media-sheen" aria-hidden="true" />
             </div>
             <span class="discipline-media-corner discipline-media-corner-tl" aria-hidden="true">
               <span /><span />
@@ -714,7 +764,7 @@ onBeforeUnmount(() => {
             </span>
             <span class="discipline-stamp" aria-hidden="true">
               <small>Discipline</small>
-              <strong>0{{ idx + 1 }}</strong>
+              <Icon :name="item.category.icon" class="discipline-stamp-icon" />
             </span>
           </div>
 
@@ -723,7 +773,7 @@ onBeforeUnmount(() => {
               <span class="discipline-eyebrow-mark" aria-hidden="true">◆</span>
               <em>discipline</em>
               <span class="discipline-eyebrow-rule" aria-hidden="true" />
-              <strong>0{{ idx + 1 }} / 0{{ categoryShowcases.length }}</strong>
+              <strong>{{ item.category.id }}</strong>
             </span>
 
             <h3 class="discipline-title">
@@ -746,7 +796,7 @@ onBeforeUnmount(() => {
     <section id="contact" class="contact">
       <SectionFlow variant="mark" />
       <div class="section-head" data-reveal>
-        <span class="section-num">05<template v-if="locale !== 'en'"> / Contact</template></span>
+        <span class="section-eyebrow"><span class="section-eyebrow-mark" aria-hidden="true">◆</span>{{ copy.eyebrowContact }}</span>
         <h2 class="section-title">
           {{ copy.contact }}
           <SectionTitleFlourish class="section-title-flourish" variant="dip" />
@@ -761,7 +811,7 @@ onBeforeUnmount(() => {
           :style="{ '--reveal-delay': `${idx * 90}ms`, '--accent': link.accent }"
         >
           <NuxtLink :href="link.href" target="_blank" rel="noopener noreferrer">
-            <span class="contact-num">0{{ idx + 1 }}</span>
+            <span class="contact-mark" aria-hidden="true" />
             <Icon :name="link.icon" class="contact-icon" />
             <span class="contact-label">{{ link.label }}</span>
             <span class="contact-handle">{{ link.handle }}</span>
@@ -779,7 +829,7 @@ onBeforeUnmount(() => {
     <section id="archive" class="archive">
       <SectionFlow variant="sweep" mirror />
       <div class="section-head" data-reveal>
-        <span class="section-num">06<template v-if="locale !== 'en'"> / Archive</template></span>
+        <span class="section-eyebrow"><span class="section-eyebrow-mark" aria-hidden="true">◆</span>{{ copy.eyebrowArchive }}</span>
         <h2 class="section-title">
           {{ copy.archiveTitle }}
           <SectionTitleFlourish class="section-title-flourish" color="#8a1827" :alpha="0.68" />
@@ -803,7 +853,7 @@ onBeforeUnmount(() => {
         <p class="archive-lead">{{ copy.archiveLead }}</p>
 
         <NuxtLink :to="`/${locale}/gallery`" class="archive-cta">
-          <span class="archive-cta-index">06</span>
+          <span class="archive-cta-index" aria-hidden="true">◆</span>
           <span class="archive-cta-body">
             <small>{{ copy.archiveStamp }}</small>
             <strong>{{ copy.archiveCta }}</strong>
@@ -977,14 +1027,6 @@ onBeforeUnmount(() => {
   gap: 0.35rem;
   position: relative;
   transition: color 0.3s ease;
-}
-
-.site-nav-links a em {
-  font-style: normal;
-  font-size: 0.62rem;
-  color: #6c7384;
-  font-weight: 800;
-  letter-spacing: 0.1em;
 }
 
 .site-nav-links a::after {
@@ -1286,28 +1328,33 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 
-.section-num {
+.section-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.7rem;
+  font-family: var(--font-display);
   font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
   color: #16181f;
 }
 
-.section-num::before,
-.section-num::after {
-  content: '';
-  width: 14px;
-  height: 1px;
-  background: var(--color-ink);
-  opacity: 0.5;
+.section-eyebrow-mark {
+  font-size: 0.62em;
+  color: var(--color-cinnabar);
+  transform: translateY(-0.05em);
+}
+
+.section-eyebrow::after {
+  content: '◆';
+  font-size: 0.62em;
+  color: var(--color-cinnabar);
+  transform: translateY(-0.05em);
 }
 
 @media (max-width: 767px) {
-  .section-num {
+  .section-eyebrow {
     justify-self: center;
   }
 }
@@ -1690,40 +1737,7 @@ onBeforeUnmount(() => {
   .discipline.is-mirrored .discipline-meta { order: 1; }
 }
 
-/* Big outline numeral floating behind the layout */
-.discipline-bignum {
-  position: absolute;
-  top: -0.18em;
-  right: -0.04em;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-style: italic;
-  font-size: clamp(11rem, 22vw, 22rem);
-  line-height: 0.78;
-  letter-spacing: -0.04em;
-  color: transparent;
-  -webkit-text-stroke: 1.4px rgba(22, 24, 31, 0.12);
-  text-stroke: 1.4px rgba(22, 24, 31, 0.12);
-  pointer-events: none;
-  user-select: none;
-  z-index: 0;
-  transition: transform 0.9s cubic-bezier(.2, .8, .2, 1), -webkit-text-stroke-color 0.6s ease;
-}
-
-.discipline.is-mirrored .discipline-bignum {
-  right: auto;
-  left: -0.04em;
-}
-
-.discipline:hover .discipline-bignum {
-  transform: translate3d(8px, -6px, 0);
-  -webkit-text-stroke-color: rgba(138, 24, 39, 0.35);
-}
-
-.discipline.is-mirrored:hover .discipline-bignum {
-  transform: translate3d(-8px, -6px, 0);
-}
-
+/* Giant outlined category word floating behind the layout */
 /* Media column */
 .discipline-media {
   position: relative;
@@ -1764,26 +1778,6 @@ onBeforeUnmount(() => {
 
 .discipline:hover .discipline-media-frame img {
   transform: scale(1.06);
-}
-
-/* Diagonal sheen sweep on hover */
-.discipline-media-sheen {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(110deg,
-    transparent 0%,
-    transparent 38%,
-    rgba(255, 255, 255, 0.32) 48%,
-    rgba(255, 255, 255, 0) 58%,
-    transparent 100%);
-  transform: translateX(-130%);
-  transition: transform 1.1s cubic-bezier(.2, .8, .2, 1);
-  pointer-events: none;
-  mix-blend-mode: screen;
-}
-
-.discipline:hover .discipline-media-sheen {
-  transform: translateX(130%);
 }
 
 /* L-shaped corner brackets */
@@ -1862,23 +1856,14 @@ onBeforeUnmount(() => {
   color: rgba(250, 250, 250, 0.7);
 }
 
-.discipline-stamp strong {
+.discipline-stamp-icon {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.95rem;
-  font-weight: 700;
-  font-style: italic;
-  letter-spacing: 0.04em;
+  font-size: 1rem;
   line-height: 1;
-  color: #fafafa;
-}
-
-.discipline-stamp strong::before {
-  content: '';
-  width: 14px;
-  height: 1px;
-  background: var(--color-cinnabar);
+  color: var(--color-cinnabar);
+  padding-left: 0.6rem;
+  border-left: 1px solid rgba(250, 250, 250, 0.22);
 }
 
 /* Meta column */
@@ -1921,9 +1906,10 @@ onBeforeUnmount(() => {
 
 .discipline-eyebrow strong {
   font-family: var(--font-display);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
   color: var(--color-cinnabar);
   font-style: italic;
 }
@@ -2018,10 +2004,6 @@ onBeforeUnmount(() => {
   .discipline-media-frame {
     aspect-ratio: 4 / 3;
   }
-  .discipline-bignum {
-    font-size: 11rem;
-    top: -0.06em;
-  }
   .discipline-stamp {
     right: 0.4rem;
     bottom: -0.9rem;
@@ -2036,7 +2018,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 480px) {
-  .discipline-bignum { font-size: 8.4rem; }
   .discipline-media-corner { width: 16px; height: 16px; }
   .discipline-media-corner span:nth-child(1) { width: 16px; }
   .discipline-media-corner span:nth-child(2) { height: 16px; }
@@ -2169,12 +2150,18 @@ onBeforeUnmount(() => {
 .contact-list a:hover::before { transform: translateX(0); }
 .contact-list a:hover > * { color: #fafafa !important; }
 
-.contact-num {
-  font-family: var(--font-display);
-  font-size: 0.86rem;
-  font-weight: 800;
-  font-style: italic;
-  color: #6c7384;
+.contact-mark {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(22, 24, 31, 0.04);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.contact-list a:hover .contact-mark {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 5px rgba(250, 250, 250, 0.18);
 }
 
 .contact-icon {
@@ -2364,18 +2351,15 @@ onBeforeUnmount(() => {
   height: 2.8rem;
   border: 1px solid rgba(250, 250, 250, 0.32);
   border-radius: 50%;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: rgba(250, 250, 250, 0.85);
-  transition: border-color 0.4s ease, color 0.4s ease;
+  font-size: 0.95rem;
+  color: var(--color-cinnabar);
+  transition: border-color 0.4s ease, color 0.4s ease, transform 0.6s cubic-bezier(.2, .8, .2, 1);
 }
 
 .archive-cta:hover .archive-cta-index {
   border-color: rgba(250, 250, 250, 0.7);
   color: #fafafa;
+  transform: rotate(60deg);
 }
 
 .archive-cta-body {

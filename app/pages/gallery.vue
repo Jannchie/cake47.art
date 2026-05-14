@@ -66,10 +66,13 @@ const localeMeta: Record<Locale, { label: string }> = {
   'ja': { label: 'JP' },
 }
 
+// Note: nuxt-seo-utils automatically appends " | cake47.art" via `site.name`
+// in nuxt.config — so leave it off these base titles to avoid the duplicate
+// suffix we used to ship.
 const galleryTitle: Record<Locale, string> = {
-  'zh-CN': '作品集 | cake47.art',
-  en: 'Gallery | cake47.art',
-  ja: '作品集 | cake47.art',
+  'zh-CN': '作品集',
+  en: 'Gallery',
+  ja: '作品集',
 }
 
 const galleryDescription: Record<Locale, string> = {
@@ -127,17 +130,12 @@ setHtmlLangByLocale()
 useHead({
   htmlAttrs: { class: 'is-gallery-page' },
 })
-setSeoMetaByLocale({
-  path: '/gallery',
-  title: galleryTitle,
-  description: galleryDescription,
-})
-setGalleryStructuredData({
-  title: galleryTitle,
-  description: galleryDescription,
-})
+// Note: setSeoMetaByLocale + setGalleryStructuredData are called further down
+// once the route's active category/series have been resolved, so that
+// canonical/title/description/JSON-LD reflect the actual path-based filter.
 
-defineOgImage('Cake47')
+// Note: defineOgImage is called further down once activeCategoryObj/activeSeriesObj
+// are in scope, so each /gallery/{category}/{series} URL ships a distinct card.
 
 const { data: indexData } = await useFetch('/api/gallery')
 const categories = computed<CategoryRow[]>(() => indexData.value?.categories ?? [])
@@ -153,7 +151,7 @@ const allArtworkCount = computed(() => series.value.reduce((sum, item) => sum + 
 
 const router = useRouter()
 
-function readQueryString(value: unknown): string | null {
+function readRouteString(value: unknown): string | null {
   if (Array.isArray(value)) {
     return typeof value[0] === 'string' ? value[0] : null
   }
@@ -167,27 +165,62 @@ function normalizeCategoryId(value: string | null): string | null {
   return value
 }
 
-const activeCategory = computed(() => normalizeCategoryId(readQueryString(route.query.category)))
-const activeSeries = computed(() => readQueryString(route.query.series))
+// Path params are the source of truth: /{locale}/gallery/[category]/[series].
+// Query strings are still accepted (legacy / shareable filter URLs) but get
+// rewritten to the canonical path-based form on mount.
+const activeCategory = computed(() =>
+  normalizeCategoryId(readRouteString(route.params.category) ?? readRouteString(route.query.category)),
+)
+const activeSeries = computed(() =>
+  readRouteString(route.params.series) ?? readRouteString(route.query.series),
+)
 
-function applyFilter(patch: Record<string, string | null>) {
-  const next = { ...route.query }
-  for (const [key, value] of Object.entries(patch)) {
-    if (value === null) {
-      delete next[key]
-    }
-    else {
-      next[key] = value
-    }
+function gallerySegmentPath(category?: string | null, seriesSlug?: string | null) {
+  if (category && seriesSlug) {
+    return `/${locale.value}/gallery/${category}/${seriesSlug}`
   }
-  router.replace({ query: next })
+  if (category) {
+    return `/${locale.value}/gallery/${category}`
+  }
+  return `/${locale.value}/gallery`
+}
+
+async function applyFilter(patch: { category?: string | null, series?: string | null }) {
+  // Resolve the desired (category, series) target. `undefined` keeps current,
+  // `null` clears it.
+  const nextCategory = patch.category === undefined ? activeCategory.value : patch.category
+  const nextSeries = patch.series === undefined
+    ? (patch.category === undefined || patch.category === activeCategory.value ? activeSeries.value : null)
+    : patch.series
+
+  const targetCategory = nextCategory || null
+  // A series only makes sense when its category is selected.
+  const targetSeries = targetCategory ? (nextSeries || null) : null
+
+  const carriedQuery = { ...route.query }
+  delete carriedQuery.category
+  delete carriedQuery.series
+
+  await router.replace({
+    path: gallerySegmentPath(targetCategory, targetSeries),
+    query: carriedQuery,
+  })
 }
 
 function normalizeLegacyCategoryQuery() {
-  const rawCategory = readQueryString(route.query.category)
+  const rawCategory = readRouteString(route.query.category)
+  const rawSeries = readRouteString(route.query.series)
   const normalizedCategory = normalizeCategoryId(rawCategory)
-  if (rawCategory && normalizedCategory && rawCategory !== normalizedCategory) {
-    applyFilter({ category: normalizedCategory })
+  // If we landed via a legacy `?category=...` URL, rewrite into the
+  // path-based canonical so all crawled / shared / bookmarked URLs converge.
+  if (rawCategory) {
+    const carriedQuery = { ...route.query }
+    delete carriedQuery.category
+    delete carriedQuery.series
+    router.replace({
+      path: gallerySegmentPath(normalizedCategory, normalizedCategory ? rawSeries : null),
+      query: carriedQuery,
+    })
   }
 }
 
@@ -501,6 +534,16 @@ function localizedDescription(a: ArtworkRow) {
   }
   return a.descriptionEn
 }
+
+function artworkAlt(a: ArtworkRow): string {
+  const title = localizedTitle(a)
+  const seriesText = localizedSeriesText(a)
+  const cat = categoryById(a.categoryId)
+  const categoryLabel = cat ? localizedCategoryName(cat) : a.categoryId
+  return title === seriesText
+    ? `${title} ${categoryLabel} illustration by snowcake47`
+    : `${title} — ${seriesText} ${categoryLabel} illustration by snowcake47`
+}
 function categoryById(id: string | null) {
   if (!id) {
     return null
@@ -552,6 +595,113 @@ watch(activeCategory, (val) => {
 watch(() => route.query.category, () => {
   normalizeLegacyCategoryQuery()
 })
+
+// Resolve the currently-active category / series objects from the loaded data.
+// These power the dynamic <title>/<description>/<canonical> + JSON-LD below.
+const activeCategoryObj = computed(() => categories.value.find(c => c.id === activeCategory.value) ?? null)
+const activeSeriesObj = computed(() => series.value.find(s => s.slug === activeSeries.value) ?? null)
+
+const dynamicTitle = computed<Record<Locale, string>>(() => {
+  const series = activeSeriesObj.value
+  const cat = activeCategoryObj.value
+  if (series) {
+    return {
+      'zh-CN': `${series.nameZh || series.nameEn} · 系列作品 | snowcake47 / 私期`,
+      'en': `${series.nameEn || series.nameZh} · series by snowcake47`,
+      'ja': `${series.nameJa || series.nameEn} · シリーズ作品 | snowcake47 / 私期`,
+    }
+  }
+  if (cat) {
+    return {
+      'zh-CN': `${cat.labelZh} · snowcake47 / 私期 作品集`,
+      'en': `${cat.labelEn} · snowcake47 illustration gallery`,
+      'ja': `${cat.labelJa} · snowcake47 / 私期 ギャラリー`,
+    }
+  }
+  return galleryTitle
+})
+
+const dynamicDescription = computed<Record<Locale, string>>(() => {
+  const series = activeSeriesObj.value
+  const cat = activeCategoryObj.value
+  if (series) {
+    const baseZh = series.descriptionZh || series.descriptionEn || `${series.nameZh || series.nameEn} 系列作品。`
+    const baseEn = series.descriptionEn || `${series.nameEn || series.nameZh} series.`
+    const baseJa = series.descriptionJa || series.descriptionEn || `${series.nameJa || series.nameEn} シリーズ。`
+    return {
+      'zh-CN': `${baseZh} 由 snowcake47 / 私期 创作的同人 / 原创插画作品集合。`,
+      'en': `${baseEn} Illustrations from this series by snowcake47 / 私期.`,
+      'ja': `${baseJa} snowcake47 / 私期 によるイラスト作品集。`,
+    }
+  }
+  if (cat) {
+    const baseZh = cat.descriptionZh || `${cat.labelZh} 类目下的全部作品。`
+    const baseEn = cat.descriptionEn || `All works in the ${cat.labelEn} category.`
+    const baseJa = cat.descriptionJa || `${cat.labelJa} カテゴリの全作品。`
+    return {
+      'zh-CN': `${baseZh} 浏览 snowcake47 / 私期 在该类目下的全部插画。`,
+      'en': `${baseEn} Browse every snowcake47 illustration filed under this discipline.`,
+      'ja': `${baseJa} snowcake47 / 私期 の該当カテゴリのイラストをすべて閲覧できます。`,
+    }
+  }
+  return galleryDescription
+})
+
+const dynamicPath = computed(() => {
+  if (activeSeries.value && activeCategory.value) {
+    return `/gallery/${activeCategory.value}/${activeSeries.value}`
+  }
+  if (activeCategory.value) {
+    return `/gallery/${activeCategory.value}`
+  }
+  return '/gallery'
+})
+
+// All four inputs are computed/refs so canonical/og-url/title/description
+// reactively follow the path-based filter (/{locale}/gallery/[category]/[series]).
+setSeoMetaByLocale({
+  path: dynamicPath,
+  title: dynamicTitle,
+  description: dynamicDescription,
+  // Only the bare /gallery has a Markdown alternate (see server/utils/page-markdown.ts);
+  // path-based filter views (/gallery/[category][/[series]]) do not.
+  markdownAlternate: () => dynamicPath.value === '/gallery',
+})
+setGalleryStructuredData({
+  title: dynamicTitle,
+  description: dynamicDescription,
+  path: dynamicPath,
+})
+setArtworksStructuredData(() => artworks.value)
+
+// Pass the active filter into the og-image so each /gallery/{category}/{series}
+// URL ships a distinct social card. nuxt-og-image serialises props into the URL
+// at setup time and doesn't unwrap refs, so we resolve them to strings here.
+function computeOgSubtitle(): string {
+  const ser = activeSeriesObj.value
+  const cat = activeCategoryObj.value
+  if (ser) {
+    return locale.value === 'zh-CN'
+      ? `${ser.nameZh || ser.nameEn} · 系列作品`
+      : locale.value === 'ja'
+        ? `${ser.nameJa || ser.nameEn} · シリーズ`
+        : `${ser.nameEn || ser.nameZh} · series`
+  }
+  if (cat) {
+    return locale.value === 'zh-CN'
+      ? `${cat.labelZh} · 作品集`
+      : locale.value === 'ja'
+        ? `${cat.labelJa} · ギャラリー`
+        : `${cat.labelEn} · gallery`
+  }
+  return locale.value === 'zh-CN'
+    ? '私期的画室 · 作品集'
+    : locale.value === 'ja' ? '私期の画室 · ギャラリー' : 'snowcake47 illustration gallery'
+}
+defineOgImage('Cake47', {
+  subtitle: computeOgSubtitle(),
+  eyebrow: activeCategory.value ? activeCategory.value.replace(/-/g, ' ') : 'illustration gallery',
+})
 </script>
 
 <template>
@@ -585,7 +735,7 @@ watch(() => route.query.category, () => {
     <aside class="index">
       <NuxtLink :to="`/${locale}`" class="index-brand">
         <span class="index-brand-mark">
-          <img :src="'/api/files/brand/avatar.jpg'" alt="snowcake47">
+          <img :src="'/api/files/brand/avatar.jpg'" alt="snowcake47 illustrator avatar" width="40" height="40">
         </span>
         <span class="index-brand-text">
           <strong>cake47.art</strong>
@@ -658,8 +808,11 @@ watch(() => route.query.category, () => {
         >
           <img
             :src="currentArtwork.url"
-            :alt="localizedTitle(currentArtwork)"
+            :alt="artworkAlt(currentArtwork)"
+            :width="currentArtwork.width || undefined"
+            :height="currentArtwork.height || undefined"
             decoding="async"
+            fetchpriority="high"
           >
         </div>
 
@@ -738,7 +891,7 @@ watch(() => route.query.category, () => {
             :style="thumbHashAverageColorStyle(a.thumbHash)"
             @click="handleFilmThumbClick($event, idx)"
           >
-            <img :src="a.url" :alt="localizedTitle(a)" loading="lazy" draggable="false" :style="{ objectPosition: a.objectPosition ?? '50% 30%' }">
+            <img :src="a.url" :alt="artworkAlt(a)" loading="lazy" decoding="async" draggable="false" :style="{ objectPosition: a.objectPosition ?? '50% 30%' }">
           </button>
           <div v-if="totalCount === 0" class="film-empty">
             {{ copy.empty }}

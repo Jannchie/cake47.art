@@ -25,7 +25,15 @@ const titleTiming = {
   erase: 1,
 }
 
-const visible = ref(true)
+// Module-scoped flag: persists across SPA navigations (same app instance) but
+// resets on full page reload (module re-evaluated), so refresh always replays
+// the overlay while locale switches skip it.
+let overlayShownThisAppInstance = false
+
+const nuxtApp = useNuxtApp()
+const skipOnMount = import.meta.client && !nuxtApp.isHydrating && overlayShownThisAppInstance
+
+const visible = ref(!skipOnMount)
 const fading = ref(false)
 const subtitleVisible = ref(false)
 const prefersReducedMotion = ref(false)
@@ -43,12 +51,16 @@ function startIntroTimers() {
   }
   introTimersStarted = true
 
-  const total = 3600
-  const fadeStart = 2900
+  // Shortened from 3600/2900 → 2600/1900 so the overlay doesn't dominate INP/LCP.
+  // The TextTrace animation finishes well before fadeStart, and SEO crawlers
+  // already bypass the overlay because it's wrapped in <ClientOnly>.
+  const total = 2600
+  const fadeStart = 1900
 
   timers.push(window.setTimeout(() => { fading.value = true }, fadeStart))
   timers.push(window.setTimeout(() => {
     visible.value = false
+    overlayShownThisAppInstance = true
   }, total))
 
   document.documentElement.style.overflow = 'hidden'
@@ -78,6 +90,11 @@ function handleTracePhaseChange(phase: string) {
 }
 
 onMounted(() => {
+  if (!visible.value) {
+    overlayShownThisAppInstance = true
+    return
+  }
+
   prefersReducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   if (prefersReducedMotion.value) {

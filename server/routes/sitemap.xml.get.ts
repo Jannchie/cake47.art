@@ -2,11 +2,10 @@
 // - Lists every locale-prefixed page that resolves to a real route.
 // - Embeds <image:image> entries on each gallery URL so that Google
 //   Image Search can index the artwork binaries served by /api/files/*.
-// - Series-detail URLs are NOT emitted because the gallery routes via query
-//   strings (?series=…&category=…), and surfacing dead `/{locale}/gallery/{cat}/{slug}`
-//   URLs to crawlers would just generate 404s.
+// - Emits path-based category + series URLs so each filter view is its own
+//   canonical (matches `pages/index/[locale]/gallery/[category]/[series].vue`).
 import { defineEventHandler, setResponseHeader } from 'h3'
-import { and, desc, eq, tables, useDrizzle } from '~~/server/utils/drizzle'
+import { and, asc, desc, eq, sql, tables, useDrizzle } from '~~/server/utils/drizzle'
 import { versionBlobUrl } from '~~/server/utils/blob-url'
 
 const SITE_URL = 'https://cake47.art'
@@ -111,9 +110,33 @@ export default defineEventHandler(async (event) => {
   // so we get one canonical title/series per artwork for the image sitemap.
   let galleryImagesByLocale: Record<Locale, ImageEntry[]> = { 'en': [], 'zh-CN': [], 'ja': [] }
   let galleryLastmod = today
+  let categoryRows: { id: string }[] = []
+  let seriesRows: { slug: string, categoryId: string }[] = []
+  // Per-category and per-series image bundles, in the same order/locale shape
+  // as `galleryImagesByLocale` so each path-based view declares only its own
+  // artwork binaries (helps Google Images understand which gallery a binary
+  // belongs to).
+  const imagesByCategoryByLocale = new Map<string, Record<Locale, ImageEntry[]>>()
+  const imagesBySeriesByLocale = new Map<string, Record<Locale, ImageEntry[]>>()
+  const lastmodByCategory = new Map<string, string>()
+  const lastmodBySeries = new Map<string, string>()
 
   try {
     const db = useDrizzle()
+
+    categoryRows = await db
+      .select({ id: tables.categories.id })
+      .from(tables.categories)
+      .orderBy(asc(tables.categories.sortOrder), asc(tables.categories.id))
+      .all()
+
+    seriesRows = await db
+      .select({ slug: tables.series.slug, categoryId: tables.series.categoryId })
+      .from(tables.series)
+      .innerJoin(tables.artworkSeriesLinks, eq(tables.artworkSeriesLinks.seriesId, tables.series.id))
+      .groupBy(tables.series.id)
+      .having(sql`count(${tables.artworkSeriesLinks.artworkId}) > 0`)
+      .all()
 
     const artworks = await db
       .select({
@@ -125,9 +148,11 @@ export default defineEventHandler(async (event) => {
         descriptionZh: tables.artworks.descriptionZh,
         descriptionEn: tables.artworks.descriptionEn,
         descriptionJa: tables.artworks.descriptionJa,
+        seriesSlug: tables.series.slug,
         seriesNameZh: tables.series.nameZh,
         seriesNameEn: tables.series.nameEn,
         seriesNameJa: tables.series.nameJa,
+        categoryId: tables.series.categoryId,
         createdAt: tables.artworks.createdAt,
       })
       .from(tables.artworks)
@@ -154,6 +179,39 @@ export default defineEventHandler(async (event) => {
       })
       return acc
     }, { 'en': [], 'zh-CN': [], 'ja': [] } as Record<Locale, ImageEntry[]>)
+
+    // Group images by category and series so per-filter sitemap entries can
+    // declare only the binaries that actually appear on that view.
+    for (const cat of categoryRows) {
+      imagesByCategoryByLocale.set(cat.id, { 'en': [], 'zh-CN': [], 'ja': [] })
+    }
+    for (const s of seriesRows) {
+      imagesBySeriesByLocale.set(s.slug, { 'en': [], 'zh-CN': [], 'ja': [] })
+    }
+
+    for (let i = 0; i < artworks.length; i++) {
+      const row = artworks[i]!
+      const ts = row.createdAt instanceof Date ? row.createdAt.getTime() : Number(row.createdAt) || 0
+      const iso = toIsoDate(ts)
+      if (iso) {
+        const prevCat = lastmodByCategory.get(row.categoryId)
+        if (!prevCat || iso > prevCat) {
+          lastmodByCategory.set(row.categoryId, iso)
+        }
+        const prevSer = lastmodBySeries.get(row.seriesSlug)
+        if (!prevSer || iso > prevSer) {
+          lastmodBySeries.set(row.seriesSlug, iso)
+        }
+      }
+      for (const locale of LOCALES) {
+        const entry = galleryImagesByLocale[locale][i]
+        if (!entry) {
+          continue
+        }
+        imagesByCategoryByLocale.get(row.categoryId)?.[locale].push(entry)
+        imagesBySeriesByLocale.get(row.seriesSlug)?.[locale].push(entry)
+      }
+    }
 
     const newest = artworks
       .map(row => row.createdAt instanceof Date ? row.createdAt.getTime() : Number(row.createdAt) || 0)
@@ -182,6 +240,38 @@ export default defineEventHandler(async (event) => {
       alternates: localizedAlternates('/gallery'),
       images: galleryImagesByLocale[locale],
     })
+  }
+
+  // Per-category landing pages (e.g. /en/gallery/fan-works).
+  for (const cat of categoryRows) {
+    const catImagesByLocale = imagesByCategoryByLocale.get(cat.id)
+    const catLastmod = lastmodByCategory.get(cat.id) ?? galleryLastmod
+    for (const locale of LOCALES) {
+      entries.push({
+        loc: `${SITE_URL}/${locale}/gallery/${cat.id}`,
+        lastmod: catLastmod,
+        changefreq: 'weekly',
+        priority: 0.8,
+        alternates: localizedAlternates(`/gallery/${cat.id}`),
+        images: catImagesByLocale?.[locale],
+      })
+    }
+  }
+
+  // Per-series landing pages (e.g. /en/gallery/fan-works/vocaloid).
+  for (const s of seriesRows) {
+    const serImagesByLocale = imagesBySeriesByLocale.get(s.slug)
+    const serLastmod = lastmodBySeries.get(s.slug) ?? galleryLastmod
+    for (const locale of LOCALES) {
+      entries.push({
+        loc: `${SITE_URL}/${locale}/gallery/${s.categoryId}/${s.slug}`,
+        lastmod: serLastmod,
+        changefreq: 'weekly',
+        priority: 0.7,
+        alternates: localizedAlternates(`/gallery/${s.categoryId}/${s.slug}`),
+        images: serImagesByLocale?.[locale],
+      })
+    }
   }
 
   // Reference informational endpoints discoverable via crawlers.

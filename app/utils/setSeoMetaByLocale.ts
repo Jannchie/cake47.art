@@ -1,3 +1,5 @@
+import type { MaybeRefOrGetter } from 'vue'
+import { toValue } from 'vue'
 import { tForLocale } from '~/utils/i18n'
 import { DEFAULT_LOCALE, LOCALES, localeLanguageTags, localizedPath, useRouteLocale, type Locale } from '~/utils/useLocale'
 
@@ -10,20 +12,21 @@ const ogLocaleTags: Record<Locale, string> = {
   'ja': 'ja_JP',
 }
 
-const KEYWORDS_BY_LOCALE: Record<Locale, string> = {
-  'zh-CN': 'snowcake47, 私期, cake47, 插画师, 插画作品集, 同人, 原创角色, 商单, 委托, Vocaloid',
-  'en': 'snowcake47, Shiki, cake47, illustrator, illustration portfolio, anime, fan art, original character, commission, Vocaloid',
-  'ja': 'snowcake47, 私期, cake47, イラストレーター, ポートフォリオ, ファンアート, オリジナルキャラクター, 商業, 依頼, ボカロ',
-}
-
 type OgType = 'website' | 'article' | 'book' | 'profile'
 
 interface LocaleSeoOptions {
-  path?: string
-  title?: Record<Locale, string>
-  description?: Record<Locale, string>
-  image?: string
+  // All inputs accept refs / getters so that path-based routes can recompute
+  // canonical + hreflang + og when the active filter changes.
+  path?: MaybeRefOrGetter<string | undefined>
+  title?: MaybeRefOrGetter<Record<Locale, string> | undefined>
+  description?: MaybeRefOrGetter<Record<Locale, string> | undefined>
+  image?: MaybeRefOrGetter<string | undefined>
   ogType?: OgType
+  // When false / resolves to false, suppresses the
+  // <link rel="alternate" type="text/markdown"> hint because the URL has no
+  // .md representation. Accepts a getter so route-aware pages (e.g. gallery
+  // with filters) can flip it per-path.
+  markdownAlternate?: MaybeRefOrGetter<boolean | undefined>
 }
 
 function absoluteLocalizedUrl(locale: Locale, path = '') {
@@ -39,22 +42,26 @@ function toAbsolute(url: string) {
 
 export function setSeoMetaByLocale(options: LocaleSeoOptions = {}) {
   const locale = useRouteLocale()
-  const title = () => options.title?.[locale.value] ?? tForLocale('title', locale.value)
-  const description = () => options.description?.[locale.value] ?? tForLocale('description', locale.value)
-  const image = toAbsolute(options.image ?? DEFAULT_OG_IMAGE)
+  const titles = () => toValue(options.title)
+  const descriptions = () => toValue(options.description)
+  const path = () => toValue(options.path) ?? ''
+  const imageUrl = () => toAbsolute(toValue(options.image) ?? DEFAULT_OG_IMAGE)
+
+  const title = () => titles()?.[locale.value] ?? tForLocale('title', locale.value)
+  const description = () => descriptions()?.[locale.value] ?? tForLocale('description', locale.value)
   const ogType = options.ogType ?? 'website'
+  const resolveMarkdownAlternate = () => toValue(options.markdownAlternate) ?? true
 
   useSeoMeta({
     title,
     description,
-    keywords: () => KEYWORDS_BY_LOCALE[locale.value],
     ogType,
     ogSiteName: 'cake47.art',
     ogTitle: title,
     ogDescription: description,
-    ogImage: image,
+    ogImage: imageUrl,
     ogImageAlt: () => `${tForLocale('title', locale.value)} — snowcake47 / 私期`,
-    ogUrl: () => absoluteLocalizedUrl(locale.value, options.path),
+    ogUrl: () => absoluteLocalizedUrl(locale.value, path()),
     ogLocale: () => ogLocaleTags[locale.value],
     ogLocaleAlternate: () => LOCALES.filter(code => code !== locale.value).map(code => ogLocaleTags[code]),
     twitterCard: 'summary_large_image',
@@ -62,31 +69,35 @@ export function setSeoMetaByLocale(options: LocaleSeoOptions = {}) {
     twitterCreator: '@snowcake47',
     twitterTitle: title,
     twitterDescription: description,
-    twitterImage: image,
+    twitterImage: imageUrl,
     twitterImageAlt: () => `${tForLocale('title', locale.value)} — snowcake47 / 私期`,
   })
 
-  useHead(() => ({
-    link: [
-      { rel: 'canonical', href: absoluteLocalizedUrl(locale.value, options.path) },
+  useHead(() => {
+    const currentPath = path()
+    const links: { rel: string, hreflang?: string, type?: string, href: string }[] = [
+      { rel: 'canonical', href: absoluteLocalizedUrl(locale.value, currentPath) },
       ...LOCALES.map(code => ({
         rel: 'alternate',
         hreflang: localeLanguageTags[code],
-        href: absoluteLocalizedUrl(code, options.path),
+        href: absoluteLocalizedUrl(code, currentPath),
       })),
       {
         rel: 'alternate',
         hreflang: 'x-default',
-        href: absoluteLocalizedUrl(DEFAULT_LOCALE, options.path),
+        href: absoluteLocalizedUrl(DEFAULT_LOCALE, currentPath),
       },
-      // Markdown alternate so agent-readability auditors (and crawlers that
-      // probe <link rel="alternate">) discover the Markdown representation
-      // without needing to send Accept: text/markdown.
-      {
+    ]
+    if (resolveMarkdownAlternate()) {
+      // Crawlers / agent-readiness auditors that probe <link rel="alternate">
+      // discover the Markdown representation here without needing to send
+      // Accept: text/markdown.
+      links.push({
         rel: 'alternate',
         type: 'text/markdown',
-        href: `${absoluteLocalizedUrl(locale.value, options.path)}.md`,
-      },
-    ],
-  }))
+        href: `${absoluteLocalizedUrl(locale.value, currentPath)}.md`,
+      })
+    }
+    return { link: links }
+  })
 }

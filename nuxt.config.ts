@@ -121,12 +121,22 @@ export default defineNuxtConfig({
       ],
     },
   },
+  // Don't ship all three Noto Serif weights globally — each subset adds ~50KB.
+  // Mark the fonts as available so unocss/styles that reference them resolve,
+  // but rely on @nuxt/fonts' on-demand <link rel="preload"> mechanism + a
+  // localised <FontPreloader> in the app shell to inject only the active
+  // locale's family on initial paint.
   fonts: {
     families: [
-      { name: 'Noto Serif', provider: 'google', global: true, weights: [400, 700] },
-      { name: 'Noto Serif SC', provider: 'google', global: true, weights: [400, 700] },
-      { name: 'Noto Serif JP', provider: 'google', global: true, weights: [400, 700] },
+      { name: 'Noto Serif', provider: 'google', weights: [400, 700] },
+      { name: 'Noto Serif SC', provider: 'google', weights: [400, 700] },
+      { name: 'Noto Serif JP', provider: 'google', weights: [400, 700] },
     ],
+    defaults: {
+      weights: [400, 700],
+      styles: ['normal'],
+      subsets: ['latin'],
+    },
   },
   css: ['~/assets/css/main.css'],
   hub: {
