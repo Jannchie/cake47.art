@@ -84,7 +84,6 @@ body {
 }
 
 html {
-  overflow-y: scroll;
   scrollbar-gutter: stable;
   scrollbar-color: #a8afbc #f8f7f7;
 }
